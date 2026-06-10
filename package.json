@@ -1,0 +1,14 @@
+{
+  "name": "ibm-netezza-product-marketing-insights",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "snapshot": "node build/generate-stakeholder-snapshot.mjs"
+  },
+  "devDependencies": {
+    "vercel": "^54.9.1"
+  }
+}
