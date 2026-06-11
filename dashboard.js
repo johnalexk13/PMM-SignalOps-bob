@@ -3113,6 +3113,40 @@ function normalizeListValue(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+const COMPETITOR_NAME_ALIASES = {
+  databricks: "Databricks",
+  snowflake: "Snowflake",
+  bigquery: "Google BigQuery",
+  "google bigquery": "Google BigQuery",
+  google: "Google BigQuery",
+  gcp: "Google BigQuery",
+  redshift: "Amazon Redshift",
+  "amazon redshift": "Amazon Redshift",
+  amazon: "Amazon Redshift",
+  aws: "Amazon Redshift",
+  synapse: "Azure Synapse",
+  "azure synapse": "Azure Synapse",
+  azure: "Azure Synapse",
+  teradata: "Teradata",
+  yellowbrick: "Yellowbrick",
+  "yellowbrick data": "Yellowbrick",
+  pega: "Pega",
+  appian: "Appian",
+  opentext: "Opentext",
+};
+
+function canonicalCompetitorName(value) {
+  const key = normalizeListValue(value).replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!key) return "";
+  if (COMPETITOR_NAME_ALIASES[key]) return normalizeListValue(COMPETITOR_NAME_ALIASES[key]);
+  for (const aliasKey of Object.keys(COMPETITOR_NAME_ALIASES)) {
+    if (key === aliasKey || key.includes(aliasKey) || aliasKey.includes(key)) {
+      return normalizeListValue(COMPETITOR_NAME_ALIASES[aliasKey]);
+    }
+  }
+  return key;
+}
+
 function buildDefaultSourcesForProduct(product) {
   const productLabel = product.displayName || product.productName || "IBM product";
   return Object.fromEntries(INSIGHT_PAGES.map((page) => [
@@ -3318,13 +3352,13 @@ function getConfiguredCompetitors() {
 }
 
 function getConfiguredCompetitorNames() {
-  return new Set(getConfiguredCompetitors().map((competitor) => normalizeListValue(competitor.name)));
+  return new Set(getConfiguredCompetitors().map((competitor) => canonicalCompetitorName(competitor.name)));
 }
 
 function isConfiguredCompetitorSignal(item) {
   const names = getConfiguredCompetitorNames();
   if (!names.size) return false;
-  return names.has(normalizeListValue(item?.competitor));
+  return names.has(canonicalCompetitorName(item?.competitor));
 }
 
 function isConfiguredCompetitorInsight(item) {
@@ -3333,15 +3367,18 @@ function isConfiguredCompetitorInsight(item) {
   
   // Check if the item has a competitor field
   if (item?.competitor) {
-    return names.has(normalizeListValue(item.competitor));
+    return names.has(canonicalCompetitorName(item.competitor));
   }
   
   // Check if the item has tags with Counter-CompetitorName format
+  // Tags may carry a SHORT competitor name (e.g. "Counter-BigQuery"), while the
+  // configured set holds full names (e.g. "google bigquery"), so match by
+  // exact value OR substring containment in either direction.
   if (Array.isArray(item?.tags)) {
     return item.tags.some(tag => {
       if (tag.startsWith("Counter-")) {
-        const competitorName = tag.replace("Counter-", "");
-        return names.has(normalizeListValue(competitorName));
+        const competitorName = canonicalCompetitorName(tag.replace("Counter-", ""));
+        if (competitorName && names.has(competitorName)) return true;
       }
       return false;
     });
@@ -3349,7 +3386,7 @@ function isConfiguredCompetitorInsight(item) {
   
   // Check if the item has competitors array
   if (Array.isArray(item?.competitors)) {
-    return item.competitors.some(comp => names.has(normalizeListValue(comp)));
+    return item.competitors.some(comp => names.has(canonicalCompetitorName(comp)));
   }
   
   return false;
@@ -4602,9 +4639,9 @@ function renderProductPage(page) {
           <h3>Capability matrix - ${escapeHtml(productShortName)} vs configured competitors</h3>
         </div>
         <div class="product-legend">
-          <span class="product-legend-item"><span class="product-status-icon strong">✓</span> Strong</span>
-          <span class="product-legend-item"><span class="product-status-icon partial">◆</span> Partial</span>
-          <span class="product-legend-item"><span class="product-status-icon gap">×</span> Gap</span>
+          <span class="product-legend-item"><span class="product-status-icon strong">✓</span> Claimed publicly</span>
+          <span class="product-legend-item"><span class="product-status-icon partial">◆</span> Reported / unverified</span>
+          <span class="product-legend-item"><span class="product-status-icon gap">×</span> Not detected</span>
         </div>
       </div>
       <div class="table-wrap">
@@ -4742,13 +4779,7 @@ function buildDynamicProductSuggestionModel() {
     tags: ["Setup"],
   }];
 
-  const capabilityMatrix = [
-    makeDynamicCapabilityRow("Product positioning clarity", "Does the page clearly explain buyer, value, proof, and CTA?", workspace.productUrl ? "strong" : "gap", competitors, byCompetitor, "website"),
-    makeDynamicCapabilityRow("Social narrative visibility", "Are public social/source surfaces available to track launch and thought-leadership movement?", "partial", competitors, byCompetitor, "social"),
-    makeDynamicCapabilityRow("Review proof and buyer friction", "Can PMM inspect G2/TrustRadius-style buyer language for objections and strengths?", "partial", competitors, byCompetitor, "reviews"),
-    makeDynamicCapabilityRow("Blog and update velocity", "Can PMM inspect launch/update content for roadmap, campaign, and feature themes?", "partial", competitors, byCompetitor, "blog"),
-    makeDynamicCapabilityRow("Competitive response readiness", "Is there enough evidence to create battle cards, comparison pages, and seller talk tracks?", competitors.length ? "partial" : "gap", competitors, byCompetitor, "website"),
-  ];
+  const capabilityMatrix = buildProductCapabilityMatrixForCompetitors(competitors, state.liveInsights?.capabilityEvidence);
 
   return {
     confirmedCapabilities,
@@ -4758,6 +4789,81 @@ function buildDynamicProductSuggestionModel() {
     capabilityMatrix,
     matrixCompetitors: competitorNames,
   };
+}
+
+function resolveCapabilityMatrixColumn(name) {
+  const canonical = canonicalCompetitorName(name);
+  const direct = Object.keys(PRODUCT_CAPABILITY_MATRIX[0]?.statuses || {}).find(
+    (column) => normalizeListValue(column) === canonical
+  );
+  return direct || "";
+}
+
+const EVIDENCE_STATUS_TO_ICON = { claimed: "strong", reported: "partial", "not-detected": "gap", unknown: "partial" };
+const EVIDENCE_STATUS_LABEL = {
+  claimed: "Claimed publicly on vendor page",
+  reported: "Reported in recent news coverage",
+  "not-detected": "Not detected on scanned page",
+  unknown: "Page not reachable - no evidence yet",
+};
+
+function describeEvidenceCell(cell) {
+  if (!cell) return EVIDENCE_STATUS_LABEL.unknown;
+  const base = EVIDENCE_STATUS_LABEL[cell.status] || EVIDENCE_STATUS_LABEL.unknown;
+  return cell.term ? `${base} (matched: \"${cell.term}\")` : base;
+}
+
+function buildEvidenceCapabilityMatrix(competitors, evidence) {
+  const competitorKeys = Object.keys(evidence.competitors || {});
+  const resolveKey = (name) => {
+    const canonical = canonicalCompetitorName(name);
+    return competitorKeys.find((key) => canonicalCompetitorName(key) === canonical) || "";
+  };
+  return (evidence.rows || []).map((row) => {
+    const focusCell = evidence.focus?.[row.id];
+    const statuses = { focus: EVIDENCE_STATUS_TO_ICON[focusCell?.status] || "partial" };
+    const details = { focus: describeEvidenceCell(focusCell) };
+    let competitorsClaimed = 0;
+    competitors.forEach((competitor) => {
+      const key = resolveKey(competitor.name);
+      const cell = key ? evidence.competitors[key]?.[row.id] : null;
+      statuses[competitor.name] = EVIDENCE_STATUS_TO_ICON[cell?.status] || "partial";
+      details[competitor.name] = describeEvidenceCell(cell);
+      if (cell?.status === "claimed") competitorsClaimed += 1;
+    });
+    const focusClaimed = focusCell?.status === "claimed";
+    const gapScore = competitors.length && !focusClaimed && competitorsClaimed > 0
+      ? Math.min(9, 3 + competitorsClaimed * 1.5).toFixed(1)
+      : 0;
+    return { capability: row.capability, note: row.note, statuses, details, gapScore };
+  });
+}
+
+function buildProductCapabilityMatrixForCompetitors(competitors, capabilityEvidence) {
+  if (capabilityEvidence && capabilityEvidence.rows && capabilityEvidence.rows.length) {
+    return buildEvidenceCapabilityMatrix(competitors, capabilityEvidence);
+  }
+  return PRODUCT_CAPABILITY_MATRIX.map((row) => {
+    const statuses = { focus: row.statuses.Netezza || "partial" };
+    let weakCount = 0;
+    competitors.forEach((competitor) => {
+      const column = resolveCapabilityMatrixColumn(competitor.name);
+      const status = column && row.statuses[column] ? row.statuses[column] : "partial";
+      statuses[competitor.name] = status;
+      if (status !== "strong") weakCount += 1;
+    });
+    const focusWeak = statuses.focus !== "strong";
+    const competitorsStrong = competitors.length - weakCount;
+    const gapScore = competitors.length && focusWeak && competitorsStrong > 0
+      ? Math.min(9, 3 + competitorsStrong * 1.5).toFixed(1)
+      : 0;
+    return {
+      capability: row.capability,
+      note: row.note,
+      statuses,
+      gapScore,
+    };
+  });
 }
 
 function makeDynamicCapabilityRow(capability, note, focusStatus, competitors, byCompetitor, group) {
@@ -5493,8 +5599,8 @@ function renderProductMatrixRow(row, competitors = []) {
         <strong>${escapeHtml(row.capability)}</strong>
         <span>${escapeHtml(row.note)}</span>
       </td>
-      <td class="product-status-cell is-netezza">${renderProductStatus(row.statuses.focus)}</td>
-      ${competitors.map((name) => `<td class="product-status-cell">${renderProductStatus(row.statuses[name] || "partial")}</td>`).join("")}
+      <td class="product-status-cell is-netezza" title="${escapeHtml(row.details?.focus || "")}">${renderProductStatus(row.statuses.focus)}</td>
+      ${competitors.map((name) => `<td class="product-status-cell" title="${escapeHtml(row.details?.[name] || "")}">${renderProductStatus(row.statuses[name] || "partial")}</td>`).join("")}
       <td class="product-gap-score-cell">${renderProductGapScore(row.gapScore)}</td>
     </tr>
   `;
@@ -7337,6 +7443,7 @@ async function loadMarketSignals({ force = false, showLoadingState = true } = {}
         deliveryMode: mode,
       },
       sections: payload.sections || state.liveInsights.sections,
+      capabilityEvidence: payload.capabilityEvidence || state.liveInsights.capabilityEvidence || null,
     };
   } catch (error) {
     if (requestId !== marketRequestSequence) {
@@ -7378,16 +7485,15 @@ async function fetchWorkspaceIntelligencePayload({ force = false } = {}) {
   
   // Add competitors parameter
   const configuredCompetitors = getConfiguredCompetitors();
-  const competitors = configuredCompetitors.map(c => c.name); // Extract original names
+  // Send name + configured URL so the server can build crawl sources for ANY competitor
+  const competitors = configuredCompetitors.map(c => ({ name: c.name, url: c.url || "" }));
   if (competitors && competitors.length > 0) {
     params.set("competitors", JSON.stringify(competitors));
-    console.log(`[dashboard] Sending competitors to API: ${competitors.join(', ')}`);
+    console.log(`[dashboard] Sending competitors to API: ${competitors.map(c => c.name).join(', ')}`);
   }
   
   const query = `?${params.toString()}`;
-  const candidateEndpoints = isLocalHost()
-    ? [`/api/workspace-intelligence${query}`, `/.netlify/functions/workspace-intelligence${query}`]
-    : [`/.netlify/functions/workspace-intelligence${query}`, `/api/workspace-intelligence${query}`];
+  const candidateEndpoints = [`/api/workspace-intelligence${query}`, `/.netlify/functions/workspace-intelligence${query}`];
 
   let lastError;
 
@@ -7490,9 +7596,7 @@ async function fetchCommunitySignalsPayload({ force = false } = {}) {
     params.set("refresh", String(Date.now()));
   }
   const query = `?${params.toString()}`;
-  const candidateEndpoints = isLocalHost()
-    ? [`/api/community-signals${query}`, `/.netlify/functions/community-signals${query}`]
-    : [`/.netlify/functions/community-signals${query}`, `/api/community-signals${query}`];
+  const candidateEndpoints = [`/api/community-signals${query}`, `/.netlify/functions/community-signals${query}`];
 
   let lastError;
   for (const endpoint of candidateEndpoints) {

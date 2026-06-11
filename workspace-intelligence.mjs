@@ -1,4 +1,5 @@
 import { getMarketSignalsFeed } from "./market-signals.mjs";
+import { COMPETITOR_SOURCE_MAP, resolveCompetitorName } from "./lib/competitor-mapping.mjs";
 import {
   buildEvidenceDatabase,
   makeCitations,
@@ -381,18 +382,131 @@ const POSITIONING_PILLARS = [
   { tone: "pillar-positioning", title: "Open data execution", text: "Highlight Iceberg, object storage, and watsonx.data adjacency so Netezza complements lakehouse architecture instead of fighting it." },
 ];
 
+export const CAPABILITY_DETECTORS = [
+  { id: "cloud-deployment", capability: "Cloud / SaaS deployment", note: "Vendor publicly claims a managed cloud or SaaS offering.", terms: ["saas", "cloud-native", "fully managed", "managed service", "cloud service", "cloud platform", "cloud data"] },
+  { id: "hybrid-deployment", capability: "On-premises / hybrid deployment", note: "Vendor publicly claims on-prem, self-hosted, or hybrid options.", terms: ["on-premises", "on-prem", "on premises", "self-hosted", "hybrid", "private cloud", "air-gapped"] },
+  { id: "ai-ml", capability: "AI & machine learning", note: "Vendor publicly claims AI/ML, GenAI, or assistant capabilities.", terms: ["artificial intelligence", " ai ", "ai-powered", "machine learning", "genai", "generative ai", "copilot", "llm", "ai assistant", "ai agent"] },
+  { id: "security-compliance", capability: "Security & compliance posture", note: "Vendor publicly claims certifications or compliance support.", terms: ["soc 2", "iso 27001", "gdpr", "hipaa", "fedramp", "encryption", "compliance", "role-based access"] },
+  { id: "apis-integrations", capability: "APIs & integration ecosystem", note: "Vendor publicly claims APIs, SDKs, connectors, or a marketplace.", terms: [" api", "sdk", "integration", "connector", "webhook", "marketplace", "rest api"] },
+  { id: "automation", capability: "Automation & workflow orchestration", note: "Vendor publicly claims automation or orchestration capabilities.", terms: ["automation", "workflow", "orchestration", "no-code", "low-code"] },
+  { id: "analytics", capability: "Analytics & reporting", note: "Vendor publicly claims analytics, dashboards, or reporting.", terms: ["analytics", "dashboard", "reporting", "business intelligence", "insights"] },
+  { id: "scalability", capability: "Enterprise scalability & performance", note: "Vendor publicly claims scale, performance, or availability guarantees.", terms: ["scalab", "high availability", "performance", "enterprise-grade", "throughput", "low latency", "sla", "uptime"] },
+  { id: "realtime", capability: "Real-time / streaming", note: "Vendor publicly claims real-time or streaming capabilities.", terms: ["real-time", "real time", "streaming", "event-driven", "live data"] },
+  { id: "pricing", capability: "Pricing transparency & trials", note: "Vendor publicly shows pricing details or offers a trial.", terms: ["pricing", "free trial", "free tier", "try free", "start free", "request a demo"] },
+];
+
+export function detectCapabilitiesInText(text) {
+  const haystack = ` ${String(text || "").toLowerCase()} `;
+  const result = {};
+  for (const row of CAPABILITY_DETECTORS) {
+    const matched = haystack ? row.terms.find((term) => haystack.includes(term)) : "";
+    result[row.id] = matched || "";
+  }
+  return result;
+}
+
+async function fetchPageTextForScan(url) {
+  if (!url) return "";
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "user-agent": "SignalOps-Capability-Scan/1.0",
+        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      },
+    });
+    clearTimeout(timer);
+    if (!response.ok) return "";
+    const body = await response.text();
+    return body
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .slice(0, 200000)
+      .toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function competitorScanUrl(competitor) {
+  const userUrl = typeof competitor === "object" && competitor
+    ? String(competitor.url || competitor.website || competitor.webpageUrl || "").trim()
+    : "";
+  if (userUrl) return userUrl;
+  const resolved = resolveCompetitorName(competitor);
+  return COMPETITOR_SOURCE_MAP[resolved]?.website || "";
+}
+
+async function scanCapabilityEvidence({ productProfile, competitors, marketItems }) {
+  const focusUrl = productProfile?.productUrl || "";
+  const competitorTargets = competitors.map((competitor) => ({
+    name: resolveCompetitorName(competitor),
+    url: competitorScanUrl(competitor),
+  })).filter((target) => target.name);
+
+  const [focusText, ...competitorTexts] = await Promise.all([
+    fetchPageTextForScan(focusUrl),
+    ...competitorTargets.map((target) => fetchPageTextForScan(target.url)),
+  ]);
+
+  const newsByCompetitor = new Map();
+  for (const item of marketItems || []) {
+    const key = resolveCompetitorName(item?.competitor || "");
+    if (!key) continue;
+    if (!newsByCompetitor.has(key)) newsByCompetitor.set(key, []);
+    newsByCompetitor.get(key).push(item);
+  }
+
+  const buildStatuses = (pageText, pageUrl, newsItems = []) => {
+    const claimed = detectCapabilitiesInText(pageText);
+    const newsText = newsItems.map((item) => `${item.headline || ""} ${item.summary || ""}`).join(" ").toLowerCase();
+    const reported = detectCapabilitiesInText(newsText);
+    const statuses = {};
+    for (const row of CAPABILITY_DETECTORS) {
+      if (claimed[row.id]) {
+        statuses[row.id] = { status: "claimed", term: claimed[row.id].trim(), evidenceUrl: pageUrl };
+      } else if (reported[row.id]) {
+        const sourceItem = newsItems.find((item) => `${item.headline || ""} ${item.summary || ""}`.toLowerCase().includes(reported[row.id]));
+        statuses[row.id] = { status: "reported", term: reported[row.id].trim(), evidenceUrl: sourceItem?.sourceUrl || "" };
+      } else if (pageText) {
+        statuses[row.id] = { status: "not-detected", term: "", evidenceUrl: pageUrl };
+      } else {
+        statuses[row.id] = { status: "unknown", term: "", evidenceUrl: "" };
+      }
+    }
+    return statuses;
+  };
+
+  const competitorEvidence = {};
+  competitorTargets.forEach((target, index) => {
+    competitorEvidence[target.name] = buildStatuses(competitorTexts[index], target.url, newsByCompetitor.get(target.name) || []);
+  });
+
+  return {
+    rows: CAPABILITY_DETECTORS.map((row) => ({ id: row.id, capability: row.capability, note: row.note })),
+    focus: buildStatuses(focusText, focusUrl),
+    competitors: competitorEvidence,
+    scannedAt: new Date().toISOString(),
+  };
+}
+
 export async function getWorkspaceIntelligence({ force = false, product = {}, competitors = DEFAULT_COMPETITORS } = {}) {
   const productProfile = resolveProductProfile(product);
   const cacheKey = JSON.stringify({ product: productProfile.cacheKey, competitors });
   const now = Date.now();
   if (!force && cache.payload && cache.key === cacheKey && cache.expiresAt > now) {
-    console.log(`[workspace-intelligence] Cache hit for competitors: ${competitors.join(', ')}`);
+    console.log(`[workspace-intelligence] Cache hit for competitors: ${competitors.map((c) => (typeof c === "string" ? c : c?.name || "")).filter(Boolean).join(', ')}`);
     return cache.payload;
   }
 
-  console.log(`[workspace-intelligence] Fetching intelligence for competitors: ${competitors.join(', ')}`);
+  console.log(`[workspace-intelligence] Fetching intelligence for competitors: ${competitors.map((c) => (typeof c === "string" ? c : c?.name || "")).filter(Boolean).join(', ')}`);
   const marketFeed = await getMarketSignalsFeed({ force, competitors });
   const signals = Array.isArray(marketFeed.items) ? marketFeed.items : [];
+  const capabilityEvidence = await scanCapabilityEvidence({ productProfile, competitors, marketItems: signals });
   const evidenceDatabase = buildEvidenceDatabase({ marketItems: signals });
 
   // Try to generate AI-powered insights if Granite is configured
@@ -427,6 +541,7 @@ export async function getWorkspaceIntelligence({ force = false, product = {}, co
         strategicRole: productProfile.strategicRole,
       },
     },
+    capabilityEvidence,
     marketFeed: localizeForProduct(marketFeed, productProfile),
     evidenceDatabase: localizeForProduct(evidenceDatabase, productProfile),
     sections: {
@@ -462,7 +577,7 @@ export async function handler(event = {}) {
   
   const payload = await getWorkspaceIntelligence({
     force: Object.prototype.hasOwnProperty.call(params, "refresh"),
-    competitors: competitors,
+    competitors: competitors.map((c) => (typeof c === "string" ? c : c?.name || "")).filter(Boolean),
     product: {
       id: params.productId || "",
       displayName: params.productName || "",
@@ -472,7 +587,7 @@ export async function handler(event = {}) {
       primaryBuyer: params.primaryBuyer || "",
       productUrl: params.productUrl || "",
     },
-    competitors,
+    competitors: competitors.map((c) => (typeof c === "string" ? c : c?.name || "")).filter(Boolean),
   });
 
   return {
@@ -629,6 +744,7 @@ function createContentIdea(signal, index, productProfile) {
 
   return {
     id: `live-content-${signal.id}`,
+    competitor: signal.competitor,
     icon: getIconForGroup(signal.group),
     title,
     summary: `${clipText(signal.summary, 190)} Map this to ${platform.toLowerCase()} with a direct ${productProfile.shortName} response to ${sourceNote}.`,
@@ -650,6 +766,7 @@ function createContentIdea(signal, index, productProfile) {
 function createBattleCardAction(signal, index) {
   return {
     id: `live-pmm-battle-${signal.id}`,
+    competitor: signal.competitor,
     icon: "X",
     title: `Battle card: Netezza vs ${shortName(signal.competitor)}`,
     summary: `Refresh the seller battle card with live evidence from ${signal.sourceLabel}. Focus on ${extractTheme(signal)} and current objection handlers.`,
@@ -668,6 +785,7 @@ function createRecommendedAssetAction(signal, index, productProfile) {
 
   return {
     id: `live-pmm-${strategy.id}-${signal.id}`,
+    competitor: signal.competitor,
     icon: strategy.icon,
     title: `${strategy.asset}: ${productProfile.shortName} vs ${shortName(signal.competitor)}`,
     summary: `${strategy.summary} Trigger: ${possessive(signal.competitor)} ${signal.sourceLabel.toLowerCase()} evidence is pressing on ${theme}.`,
@@ -688,6 +806,7 @@ function createRecommendedAssetAction(signal, index, productProfile) {
 function createCounterPostAction(signal, productProfile) {
   return {
     id: `live-pmm-counter-${signal.id}`,
+    competitor: signal.competitor,
     icon: "!",
     title: `Counter-post: ${shortName(signal.competitor)} ${signal.sourceLabel.toLowerCase()} narrative`,
     summary: `Create a short executive-ready post that answers ${possessive(signal.competitor)} latest ${signal.sourceLabel.toLowerCase()} message with a clearer ${productProfile.shortName} point of view.`,
@@ -704,6 +823,7 @@ function createExecutiveBriefingAction(signals, productProfile) {
   const leaders = signals.map((signal) => shortName(signal.competitor)).join(", ");
   return {
     id: "live-pmm-cio-briefing",
+    competitors: signals.map((signal) => signal.competitor),
     icon: "=",
     title: "CIO briefing: live competitive position",
     summary: `Executive-ready narrative covering the current pressure set across ${leaders}.`,
@@ -719,6 +839,7 @@ function createExecutiveBriefingAction(signals, productProfile) {
 function createAnalystBriefingAction(signals, productProfile) {
   return {
     id: "live-pmm-analyst-briefing",
+    competitors: signals.map((signal) => signal.competitor),
     icon: "^",
     title: "Analyst briefing topics - live narrative shifts",
     summary: `Package the latest competitive narratives into a concise analyst briefing memo so category framing includes ${productProfile.strategicRole}.`,

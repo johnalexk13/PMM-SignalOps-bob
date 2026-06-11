@@ -74,15 +74,18 @@ const FALLBACK_MARKET_SIGNALS = [
 
 export async function getMarketSignalsFeed({ force = false, competitors = DEFAULT_COMPETITORS } = {}) {
   const now = Date.now();
+  const competitorNames = competitors
+    .map((competitor) => (typeof competitor === "string" ? competitor : competitor?.name || ""))
+    .filter(Boolean);
   const cacheKey = JSON.stringify({ competitors });
   
   // Check cache with competitor-specific key
   if (!force && cache.payload && cache.key === cacheKey && cache.expiresAt > now) {
-    console.log(`[market-signals] Cache hit for competitors: ${competitors.join(', ')}`);
+    console.log(`[market-signals] Cache hit for competitors: ${competitorNames.join(', ')}`);
     return cache.payload;
   }
 
-  console.log(`[market-signals] Fetching signals for competitors: ${competitors.join(', ')}`);
+  console.log(`[market-signals] Fetching signals for competitors: ${competitorNames.join(', ')}`);
 
   const persistedSnapshot = force ? null : await readPersistedSnapshot();
 
@@ -130,7 +133,7 @@ export async function getMarketSignalsFeed({ force = false, competitors = DEFAUL
       totalSources: dynamicSources.length,
       failedSources,
       persistedSnapshotAt: persistedSnapshot?.meta?.lastUpdated || null,
-      competitors: competitors,
+      competitors: competitorNames,
       competitorCount: competitors.length,
     },
     items,

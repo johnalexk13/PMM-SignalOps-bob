@@ -166,6 +166,21 @@ const FALLBACK_COMMUNITY_SIGNALS = [
   makeFallback("fallback-alteryx", "Alteryx Community", "Netezza connector and workflow troubleshooting", "replies", "Alteryx Community", "INTEGRATION", "https://community.alteryx.com/t5/Alteryx-Designer-Desktop-Discussions/Error-finding-connection-when-publishing-NETEZZA-data-source-to/td-p/1265055", "Open Alteryx thread", "Alteryx community troubleshooting shows analytics practitioners still run into Netezza workflow questions. Convert this into connector-readiness content and integration guidance.", "2026-05-15T07:00:00Z"),
 ];
 
+function buildFallbackCommunitySignals({ productName = "", keywords = [] } = {}) {
+  const product = productName || "your focus product";
+  const queryText = (keywords.length ? keywords : [product]).join(" ");
+  const q = encodeURIComponent(queryText);
+  const now = Date.now();
+  const hoursAgo = (hours) => new Date(now - hours * 36e5).toISOString();
+  const defs = [
+    { id: "fallback-linkedin", community: "LinkedIn", badge: "SOCIAL", play: "announcements", url: `https://www.linkedin.com/search/results/content/?keywords=${q}`, cta: "Open LinkedIn search", summary: `LinkedIn is the primary social surface for ${product} launch amplification and practitioner conversations around: ${queryText}. Use concise POV posts with customer-safe proof points.`, hours: 6 },
+    { id: "fallback-reddit", community: "Reddit", badge: "REDDIT", play: "replies", url: `https://www.reddit.com/search/?q=${q}&sort=new`, cta: "Open Reddit search", summary: `Practitioner discussions matching your workspace keywords (${queryText}) are useful listening surfaces for ${product}. Reply only with neutral fit guidance, not product pitching.`, hours: 12 },
+    { id: "fallback-hn", community: "Hacker News", badge: "HN", play: "thought-leadership", url: `https://hn.algolia.com/?query=${q}`, cta: "Open HN search", summary: `Hacker News threads matching your keywords are best for sharpening the ${product} category narrative before broad publishing.`, hours: 18 },
+    { id: "fallback-stackoverflow", community: "Stack Overflow", badge: "STACK", play: "replies", url: `https://stackoverflow.com/search?q=${q}`, cta: "Open Stack Overflow", summary: `Implementation questions matching your keywords reveal the exact language users employ around ${product}. Turn recurring questions into support-ready content.`, hours: 24 },
+  ];
+  return defs.map((def) => makeFallback(def.id, def.community, `${def.community} surfaces matching workspace keywords`, def.play, def.community, def.badge, def.url, def.cta, def.summary, hoursAgo(def.hours)));
+}
+
 export async function getCommunitySignalsFeed({ force = false, productName = "IBM Netezza", keywords = [], platforms = [] } = {}) {
   const normalizedKeywords = normalizeList(keywords);
   const normalizedPlatforms = normalizeList(platforms);
@@ -177,7 +192,7 @@ export async function getCommunitySignalsFeed({ force = false, productName = "IB
   }
 
   const persistedSnapshot = force ? null : await readPersistedSnapshot();
-  const sources = buildCommunitySources({ platforms: normalizedPlatforms });
+  const sources = buildCommunitySources({ platforms: normalizedPlatforms, keywords: normalizedKeywords, productName });
   const settled = await Promise.allSettled(sources.map((source) => fetchCommunitySource(source, { productName, keywords: normalizedKeywords })));
   const liveItems = settled
     .filter((result) => result.status === "fulfilled")
@@ -188,7 +203,7 @@ export async function getCommunitySignalsFeed({ force = false, productName = "IB
   const failedSources = sources.length - activeSources;
   const annotatedLiveItems = liveItems.map((item) => annotateCommunityCoverage(item, "live"));
   const annotatedPersistedItems = persistedItems.map((item) => annotateCommunityCoverage(item, item.coverageType || "static"));
-  const annotatedFallbackItems = FALLBACK_COMMUNITY_SIGNALS.map((item) => annotateCommunityCoverage(item, "static"));
+  const annotatedFallbackItems = buildFallbackCommunitySignals({ productName, keywords: normalizedKeywords }).map((item) => annotateCommunityCoverage(item, "static"));
   const sourceItems = activeSources ? [...annotatedLiveItems, ...annotatedFallbackItems] : [...annotatedPersistedItems, ...annotatedFallbackItems];
   const items = dedupeById(sourceItems)
     .sort((left, right) => new Date(right.publishedAt) - new Date(left.publishedAt))
@@ -230,14 +245,91 @@ export async function getCommunitySignalsFeed({ force = false, productName = "IB
   return payload;
 }
 
-function buildCommunitySources({ platforms }) {
+function buildCommunitySources({ platforms, keywords = [], productName = "" }) {
+  const terms = (keywords.length ? keywords : [productName]).map((term) => String(term || "").trim()).filter(Boolean).slice(0, 6);
+  const queryText = terms.join(" ") || productName || "product";
+  const q = encodeURIComponent(queryText);
+  const primaryTerm = encodeURIComponent(terms[0] || productName || "product");
+
+  const dynamicSources = [
+    {
+      id: "reddit-keywords",
+      kind: "reddit",
+      platform: "Reddit",
+      community: "Reddit",
+      group: `Reddit discussions matching workspace keywords`,
+      play: "replies",
+      sourceLabel: "Reddit",
+      sourceBadge: "REDDIT",
+      sourceUrl: `https://www.reddit.com/search.json?q=${q}&sort=new&limit=6`,
+      requiredAny: terms,
+    },
+    {
+      id: "hn-keywords",
+      kind: "hn",
+      platform: "Hacker News",
+      community: "Hacker News",
+      group: `Hacker News threads matching workspace keywords`,
+      play: "thought-leadership",
+      sourceLabel: "Hacker News",
+      sourceBadge: "HN",
+      sourceUrl: `https://hn.algolia.com/api/v1/search_by_date?query=${q}&tags=story&hitsPerPage=6`,
+      requiredAny: terms,
+    },
+    {
+      id: "stackoverflow-keywords",
+      kind: "stackexchange",
+      platform: "Stack Overflow",
+      community: "Stack Overflow",
+      group: `Stack Overflow questions matching workspace keywords`,
+      play: "replies",
+      sourceLabel: "Stack Overflow",
+      sourceBadge: "STACK",
+      sourceUrl: `https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=activity&q=${primaryTerm}&site=stackoverflow&pagesize=6`,
+      requiredAny: terms,
+    },
+    {
+      id: "github-keywords",
+      kind: "github",
+      platform: "GitHub",
+      community: "GitHub",
+      group: `Open issues and discussions matching workspace keywords`,
+      play: "replies",
+      sourceLabel: "GitHub",
+      sourceBadge: "GITHUB",
+      sourceUrl: `https://api.github.com/search/issues?q=${primaryTerm}%20in:title,body&sort=updated&order=desc&per_page=6`,
+      requiredAny: terms,
+    },
+    {
+      id: "linkedin-keywords",
+      kind: "html",
+      platform: "LinkedIn",
+      community: "LinkedIn",
+      group: `LinkedIn conversations matching workspace keywords`,
+      play: "announcements",
+      sourceLabel: "LinkedIn",
+      sourceBadge: "SOCIAL",
+      sourceUrl: `https://www.linkedin.com/search/results/content/?keywords=${q}`,
+    },
+    {
+      id: "x-keywords",
+      kind: "html",
+      platform: "X",
+      community: "X",
+      group: `Public X threads matching workspace keywords`,
+      play: "announcements",
+      sourceLabel: "X",
+      sourceBadge: "SOCIAL",
+      sourceUrl: `https://x.com/search?q=${q}&src=typed_query`,
+    },
+  ];
+
   const selected = platforms.map((platform) => platform.toLowerCase());
   if (!selected.length) {
-    return BASE_COMMUNITY_SOURCES;
+    return dynamicSources;
   }
 
-  return BASE_COMMUNITY_SOURCES.filter((source) => (
-    source.alwaysInclude ||
+  return dynamicSources.filter((source) => (
     selected.some((platform) => source.platform.toLowerCase().includes(platform) || platform.includes(source.platform.toLowerCase()))
   ));
 }
@@ -376,8 +468,13 @@ function matchesCommunityTerms(value, context, source = {}) {
   }
 
   const sourceTerms = normalizeList(source.requiredAny || []);
-  const contextTerms = sourceTerms.length ? [] : normalizeList(context?.keywords || []);
-  const terms = (sourceTerms.length ? sourceTerms : [...COMMUNITY_MATCH_TERMS, ...contextTerms]).map((term) => term.toLowerCase()).filter(Boolean);
+  const contextTerms = normalizeList(context?.keywords || []);
+  const productTokens = String(context?.productName || "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length > 2 && token !== "ibm");
+  const terms = [...sourceTerms, ...contextTerms, ...productTokens].map((term) => term.toLowerCase()).filter(Boolean);
+  if (!terms.length) return true;
   const excludedTerms = [...COMMUNITY_EXCLUDE_TERMS, ...normalizeList(source.excludeAny || [])].map((term) => term.toLowerCase()).filter(Boolean);
   return terms.some((term) => haystack.includes(term)) && !excludedTerms.some((term) => haystack.includes(term));
 }
