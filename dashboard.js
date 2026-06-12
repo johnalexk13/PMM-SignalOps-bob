@@ -2,6 +2,37 @@ const LEGACY_STORAGE_KEY = "ibm-netezza-product-marketing-insights-v1";
 const STORAGE_KEY_PREFIX = "signalops-internal-product-marketing-insights-v1";
 const AUTH_USERS_KEY = "signalops-internal-auth-users-v1";
 const AUTH_SESSION_KEY = "signalops-internal-auth-session-v1";
+
+const COMPETITOR_NAME_ALIASES = {
+  databricks: "Databricks",
+  snowflake: "Snowflake",
+  bigquery: "Google BigQuery",
+  "google bigquery": "Google BigQuery",
+  google: "Google BigQuery",
+  gcp: "Google BigQuery",
+  redshift: "Amazon Redshift",
+  "amazon redshift": "Amazon Redshift",
+  amazon: "Amazon Redshift",
+  aws: "Amazon Redshift",
+  synapse: "Azure Synapse",
+  "azure synapse": "Azure Synapse",
+  azure: "Azure Synapse",
+  teradata: "Teradata",
+  yellowbrick: "Yellowbrick",
+  "yellowbrick data": "Yellowbrick",
+  pega: "Pega",
+  appian: "Appian",
+  opentext: "Opentext",
+};
+const DOCUMENT_PERSIST_BUDGET_CHARS = 1500000;
+const EVIDENCE_STATUS_TO_ICON = { claimed: "strong", reported: "partial", "not-detected": "gap", unknown: "partial" };
+const EVIDENCE_STATUS_LABEL = {
+  claimed: "Claimed publicly on vendor page",
+  reported: "Reported in recent news coverage",
+  "not-detected": "Not detected on scanned page",
+  unknown: "Page not reachable - no evidence yet",
+};
+
 const AUTH_PASSWORD_SALT = "signalops-internal-demo:v1";
 const SEEDED_USER_EMAIL = "";
 const SEEDED_USER_PASSWORD_HASH = "";
@@ -3122,27 +3153,6 @@ function normalizeListValue(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-const COMPETITOR_NAME_ALIASES = {
-  databricks: "Databricks",
-  snowflake: "Snowflake",
-  bigquery: "Google BigQuery",
-  "google bigquery": "Google BigQuery",
-  google: "Google BigQuery",
-  gcp: "Google BigQuery",
-  redshift: "Amazon Redshift",
-  "amazon redshift": "Amazon Redshift",
-  amazon: "Amazon Redshift",
-  aws: "Amazon Redshift",
-  synapse: "Azure Synapse",
-  "azure synapse": "Azure Synapse",
-  azure: "Azure Synapse",
-  teradata: "Teradata",
-  yellowbrick: "Yellowbrick",
-  "yellowbrick data": "Yellowbrick",
-  pega: "Pega",
-  appian: "Appian",
-  opentext: "Opentext",
-};
 
 function canonicalCompetitorName(value) {
   const key = normalizeListValue(value).replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
@@ -4808,13 +4818,6 @@ function resolveCapabilityMatrixColumn(name) {
   return direct || "";
 }
 
-const EVIDENCE_STATUS_TO_ICON = { claimed: "strong", reported: "partial", "not-detected": "gap", unknown: "partial" };
-const EVIDENCE_STATUS_LABEL = {
-  claimed: "Claimed publicly on vendor page",
-  reported: "Reported in recent news coverage",
-  "not-detected": "Not detected on scanned page",
-  unknown: "Page not reachable - no evidence yet",
-};
 
 function describeEvidenceCell(cell) {
   if (!cell) return EVIDENCE_STATUS_LABEL.unknown;
@@ -7356,8 +7359,6 @@ function getPersistableCommunityFeed() {
     items: clone(state.communityFeed.items || []),
   };
 }
-
-const DOCUMENT_PERSIST_BUDGET_CHARS = 1500000;
 
 function getPersistableDocumentSources({ slim = false } = {}) {
   const documents = clone(state.documentSources || []);
