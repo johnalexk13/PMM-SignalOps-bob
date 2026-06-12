@@ -2613,7 +2613,7 @@ async function handleAuthSubmit() {
       renderAuthGate("signin", "Email or password did not match a saved profile.");
       return;
     }
-    setLocalStorageValue(AUTH_SESSION_KEY, email);
+    persistAuthSession(email);
     loadAuthenticatedWorkspace();
     return;
   }
@@ -2633,8 +2633,17 @@ async function handleAuthSubmit() {
     seeded: false,
   };
   setAuthUsers(users);
-  setLocalStorageValue(AUTH_SESSION_KEY, email);
+  persistAuthSession(email);
   loadAuthenticatedWorkspace();
+}
+
+function persistAuthSession(email) {
+  setLocalStorageValue(AUTH_SESSION_KEY, email);
+  if (normalizeEmail(getLocalStorageValue(AUTH_SESSION_KEY)) === normalizeEmail(email)) return;
+  // Storage write silently failed (quota). Free legacy space and retry once.
+  console.warn("[auth] Session write failed - clearing legacy storage and retrying");
+  removeLocalStorageValue(LEGACY_STORAGE_KEY);
+  setLocalStorageValue(AUTH_SESSION_KEY, email);
 }
 
 async function hashPassword(email, password) {
@@ -6266,6 +6275,7 @@ function updateHeaderMeta() {
   refs.focusProductStatus.textContent = hasActiveProductWorkspace()
     ? `Profile: ${accountContext.email || accountContext.accountId} - Saved: ${formatDateTime(new Date(getActiveProductWorkspace().savedAt))}`
     : `Profile: ${accountContext.email || accountContext.accountId} - Add product in Manage`;
+  ensureManualRefreshButton(refs);
   if (refs.lastUpdated) refs.lastUpdated.textContent = state.activeSection === "community"
     ? state.communityFeed?.meta?.lastUpdated
       ? formatDateTime(new Date(state.communityFeed.meta.lastUpdated))
@@ -6277,6 +6287,33 @@ function updateHeaderMeta() {
         : state.marketFeed.meta?.lastUpdated
           ? formatDateTime(new Date(state.marketFeed.meta.lastUpdated))
           : formatDateTime(new Date());
+}
+
+function ensureManualRefreshButton(refs) {
+  if (!refs.lastUpdated || !refs.lastUpdated.parentElement) return;
+  if (document.querySelector("#manualRefreshButton")) return;
+  const button = document.createElement("button");
+  button.id = "manualRefreshButton";
+  button.type = "button";
+  button.textContent = "\u21bb Refresh";
+  button.title = "Re-crawl all sources now";
+  button.style.cssText = "margin-top:6px;padding:4px 12px;border-radius:999px;border:1px solid rgba(255,255,255,0.6);background:rgba(255,255,255,0.16);color:#fff;font-size:12px;font-weight:600;cursor:pointer;display:block;width:100%;";
+  button.addEventListener("click", async () => {
+    if (button.disabled) return;
+    button.disabled = true;
+    const originalLabel = button.textContent;
+    button.textContent = "Refreshing...";
+    try {
+      await Promise.allSettled([
+        loadMarketSignals({ force: true, showLoadingState: false }),
+        loadCommunitySignals({ force: true, showLoadingState: false }),
+      ]);
+    } finally {
+      button.textContent = originalLabel;
+      button.disabled = false;
+    }
+  });
+  refs.lastUpdated.parentElement.appendChild(button);
 }
 
 function getTotalSourceCount() {
@@ -7203,11 +7240,34 @@ function refreshConfiguredPage(pageId) {
   renderManagePage();
 }
 
-function persistShellState({ touchWorkspace = false } = {}) {
-  saveActiveWorkspaceSnapshot({ touchWorkspace });
-  setStorage(JSON.stringify({
+function stripHeavyContentFromWorkspaces(productWorkspaces) {
+  const slimmed = {};
+  Object.entries(productWorkspaces || {}).forEach(([productId, workspace]) => {
+    slimmed[productId] = {
+      ...workspace,
+      documentSources: (workspace.documentSources || []).map((doc) => (
+        doc.isExternalLink || !(doc.dataUrl || "").length
+          ? doc
+          : { ...doc, dataUrl: "", storageMode: "Metadata only - content too large to keep after a reload" }
+      )),
+      marketFeed: workspace.marketFeed
+        ? { ...workspace.marketFeed, items: (workspace.marketFeed.items || []).slice(0, 25) }
+        : workspace.marketFeed,
+      communityFeed: workspace.communityFeed
+        ? { ...workspace.communityFeed, items: (workspace.communityFeed.items || []).slice(0, 25) }
+        : workspace.communityFeed,
+    };
+  });
+  return slimmed;
+}
+
+function buildShellPayload({ slim = false } = {}) {
+  const productWorkspaces = slim
+    ? stripHeavyContentFromWorkspaces(state.productWorkspaces)
+    : state.productWorkspaces;
+  return {
     activeProductId: state.activeProductId,
-    productWorkspaces: state.productWorkspaces,
+    productWorkspaces,
     activeSection: state.activeSection,
     activePage: state.activePage,
     activePageBySection: state.activePageBySection,
@@ -7220,9 +7280,24 @@ function persistShellState({ touchWorkspace = false } = {}) {
     communityPlatforms: getPersistableCommunityPlatforms(),
     communityMeta: state.communityMeta,
     communityFeed: getPersistableCommunityFeed(),
-    documentSources: getPersistableDocumentSources(),
+    documentSources: getPersistableDocumentSources({ slim }),
     competitors: getPersistableCompetitors(),
-  }));
+  };
+}
+
+function persistShellState({ touchWorkspace = false } = {}) {
+  saveActiveWorkspaceSnapshot({ touchWorkspace });
+  if (setStorage(JSON.stringify(buildShellPayload()))) return;
+
+  // Browser storage quota hit: retry with document content and feed caches slimmed
+  // so profile, session, competitors, keywords, and settings are never lost.
+  console.warn("[storage] Quota exceeded - retrying with slimmed snapshot");
+  const slimSaved = setStorage(JSON.stringify(buildShellPayload({ slim: true })));
+  if (typeof showWorkspaceSaveStatus === "function") {
+    showWorkspaceSaveStatus(slimSaved
+      ? "Browser storage is full - large document content will not survive a reload"
+      : "Browser storage is full - recent changes could not be saved locally");
+  }
 }
 
 function persistAllState(options = {}) {
@@ -7282,8 +7357,25 @@ function getPersistableCommunityFeed() {
   };
 }
 
-function getPersistableDocumentSources() {
-  return clone(state.documentSources || []);
+const DOCUMENT_PERSIST_BUDGET_CHARS = 1500000;
+
+function getPersistableDocumentSources({ slim = false } = {}) {
+  const documents = clone(state.documentSources || []);
+  let budget = slim ? 0 : DOCUMENT_PERSIST_BUDGET_CHARS;
+  return documents.map((doc) => {
+    if (doc.isExternalLink) return doc;
+    const contentSize = (doc.dataUrl || "").length;
+    if (!contentSize) return doc;
+    if (contentSize <= budget) {
+      budget -= contentSize;
+      return doc;
+    }
+    return {
+      ...doc,
+      dataUrl: "",
+      storageMode: "Metadata only - content too large to keep after a reload",
+    };
+  });
 }
 
 function getPersistableCompetitors() {
@@ -7793,8 +7885,10 @@ function getStorage() {
 function setStorage(value) {
   try {
     window.localStorage.setItem(getStorageKey(), value);
+    return true;
   } catch (error) {
     console.error("Failed to write local storage", error);
+    return false;
   }
 }
 
