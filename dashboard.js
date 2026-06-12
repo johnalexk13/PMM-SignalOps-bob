@@ -5,8 +5,8 @@ const AUTH_SESSION_KEY = "signalops-internal-auth-session-v1";
 const AUTH_PASSWORD_SALT = "signalops-internal-demo:v1";
 const SEEDED_USER_EMAIL = "";
 const SEEDED_USER_PASSWORD_HASH = "";
-const MARKET_REFRESH_INTERVAL_MS = 90 * 1000;
-const COMMUNITY_REFRESH_INTERVAL_MS = 60 * 1000;
+const MARKET_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const COMMUNITY_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_DOCUMENT_SOURCE_SIZE_BYTES = 2 * 1024 * 1024;
 const STATIC_WORKSPACE_INTELLIGENCE_ENDPOINT = "./data/workspace-intelligence.json";
 const PMM_PAGE_IDS = ["overview", "content", "events", "market", "product", "positioning", "manage"];
@@ -6802,6 +6802,7 @@ function saveFocusProductWorkspace({ asNew = false } = {}) {
     loadCommunitySignals({ showLoadingState: false });
   }
   showWorkspaceSaveStatus(creatingNewProduct ? "Saved new product workspace" : "Saved product workspace");
+  loadMarketSignals({ force: true, showLoadingState: false });
 }
 
 function getFocusProductFormValues() {
@@ -6881,6 +6882,7 @@ async function handleDocumentUpload(input) {
   renderManagePage();
   updateHeaderMeta();
   showWorkspaceSaveStatus(`${additions.length} document ${additions.length === 1 ? "source" : "sources"} uploaded`);
+  loadMarketSignals({ force: true, showLoadingState: false });
 }
 
 function addDocumentLink() {
@@ -6920,6 +6922,7 @@ function addDocumentLink() {
   renderManagePage();
   updateHeaderMeta();
   showWorkspaceSaveStatus("External link added");
+  loadMarketSignals({ force: true, showLoadingState: false });
 }
 
 function deleteDocumentSource(documentId) {
@@ -6928,6 +6931,7 @@ function deleteDocumentSource(documentId) {
   renderManagePage();
   updateHeaderMeta();
   showWorkspaceSaveStatus("Document source deleted");
+  loadMarketSignals({ force: true, showLoadingState: false });
 }
 
 function addCompetitor() {
@@ -6968,6 +6972,7 @@ function addCompetitor() {
   renderManagePage();
   renderSidebarContext();
   showWorkspaceSaveStatus("Competitor added");
+  loadMarketSignals({ force: true, showLoadingState: false });
 }
 
 function deleteCompetitor(competitorId) {
@@ -6978,6 +6983,7 @@ function deleteCompetitor(competitorId) {
   renderManagePage();
   renderSidebarContext();
   showWorkspaceSaveStatus("Competitor removed");
+  loadMarketSignals({ force: true, showLoadingState: false });
 }
 
 function rebuildAutomaticSources() {
@@ -7469,6 +7475,44 @@ async function loadMarketSignals({ force = false, showLoadingState = true } = {}
   updateHeaderMeta();
 }
 
+const ANALYZABLE_TEXT_TYPES = ["text/", "application/json", "application/xml"];
+const ANALYZABLE_TEXT_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".html", ".htm", ".xml"];
+
+function decodeDocumentText(dataUrl) {
+  try {
+    const base64 = String(dataUrl || "").split(",")[1] || "";
+    if (!base64) return "";
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+  } catch {
+    return "";
+  }
+}
+
+function buildAnalyzableDocuments() {
+  const documents = state.documentSources || [];
+  const analyzable = [];
+  let totalChars = 0;
+  for (const doc of documents) {
+    if (analyzable.length >= 8 || totalChars > 300000) break;
+    if (doc.isExternalLink && doc.dataUrl) {
+      analyzable.push({ name: doc.name, url: doc.dataUrl });
+      continue;
+    }
+    const lowerName = String(doc.name || "").toLowerCase();
+    const isTextLike = ANALYZABLE_TEXT_TYPES.some((prefix) => String(doc.type || "").startsWith(prefix))
+      || ANALYZABLE_TEXT_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
+    if (!isTextLike || !doc.dataUrl) continue;
+    const text = decodeDocumentText(doc.dataUrl).slice(0, 60000);
+    if (!text.trim()) continue;
+    totalChars += text.length;
+    analyzable.push({ name: doc.name, text });
+  }
+  return analyzable;
+}
+
 async function fetchWorkspaceIntelligencePayload({ force = false } = {}) {
   const product = getActiveProductWorkspace();
   const params = new URLSearchParams();
@@ -7492,6 +7536,24 @@ async function fetchWorkspaceIntelligencePayload({ force = false } = {}) {
     console.log(`[dashboard] Sending competitors to API: ${competitors.map(c => c.name).join(', ')}`);
   }
   
+  // Documents from Manage Step 3 are sent for analysis alongside product + competitors
+  const requestBody = Object.fromEntries(params.entries());
+  requestBody.competitors = configuredCompetitors.map(c => ({ name: c.name, url: c.url || "" }));
+  requestBody.documents = buildAnalyzableDocuments();
+  try {
+    const postResponse = await fetch(`/api/workspace-intelligence`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify(requestBody),
+    });
+    if (postResponse.ok) {
+      return await postResponse.json();
+    }
+  } catch (error) {
+    console.warn("[dashboard] POST workspace-intelligence failed, falling back to GET", error);
+  }
+
   const query = `?${params.toString()}`;
   const candidateEndpoints = [`/api/workspace-intelligence${query}`, `/.netlify/functions/workspace-intelligence${query}`];
 

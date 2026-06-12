@@ -494,9 +494,47 @@ async function scanCapabilityEvidence({ productProfile, competitors, marketItems
   };
 }
 
-export async function getWorkspaceIntelligence({ force = false, product = {}, competitors = DEFAULT_COMPETITORS } = {}) {
+async function buildDocumentEvidence({ documents = [], competitors = [] } = {}) {
+  if (!documents.length) return [];
+  const competitorNames = competitors
+    .map((competitor) => resolveCompetitorName(competitor))
+    .filter(Boolean);
+
+  const prepared = await Promise.all(documents.slice(0, 8).map(async (doc, index) => {
+    const name = String(doc?.name || `Workspace document ${index + 1}`).slice(0, 120);
+    const url = String(doc?.url || "").trim();
+    let text = String(doc?.text || "");
+    if (!text && url) {
+      text = await fetchPageTextForScan(url);
+    }
+    text = text.slice(0, 60000);
+    if (!text.trim()) return null;
+    const lowerText = text.toLowerCase();
+    const matchedCompetitor = competitorNames.find((competitorName) => lowerText.includes(competitorName.toLowerCase())) || "";
+    const excerpt = text.replace(/\s+/g, " ").trim().slice(0, 280);
+    return {
+      id: `workspace-doc-${index + 1}`,
+      competitor: matchedCompetitor,
+      group: "document",
+      sourceLabel: name,
+      sourceBadge: "DOCUMENT",
+      sourceUrl: url,
+      headline: matchedCompetitor
+        ? `Workspace document on ${matchedCompetitor}: ${name}`
+        : `Workspace document: ${name}`,
+      summary: `${excerpt}${text.length > 280 ? "..." : ""}`,
+      publishedAt: new Date().toISOString(),
+      coverageType: "static",
+      documentText: lowerText,
+    };
+  }));
+
+  return prepared.filter(Boolean);
+}
+
+export async function getWorkspaceIntelligence({ force = false, product = {}, competitors = DEFAULT_COMPETITORS, documents = [] } = {}) {
   const productProfile = resolveProductProfile(product);
-  const cacheKey = JSON.stringify({ product: productProfile.cacheKey, competitors });
+  const cacheKey = JSON.stringify({ product: productProfile.cacheKey, competitors, documents: documents.map((doc) => `${doc?.name || ""}:${(doc?.text || doc?.url || "").length}`) });
   const now = Date.now();
   if (!force && cache.payload && cache.key === cacheKey && cache.expiresAt > now) {
     console.log(`[workspace-intelligence] Cache hit for competitors: ${competitors.map((c) => (typeof c === "string" ? c : c?.name || "")).filter(Boolean).join(', ')}`);
@@ -507,7 +545,10 @@ export async function getWorkspaceIntelligence({ force = false, product = {}, co
   const marketFeed = await getMarketSignalsFeed({ force, competitors });
   const signals = Array.isArray(marketFeed.items) ? marketFeed.items : [];
   const capabilityEvidence = await scanCapabilityEvidence({ productProfile, competitors, marketItems: signals });
-  const evidenceDatabase = buildEvidenceDatabase({ marketItems: signals });
+  const documentEvidence = await buildDocumentEvidence({ documents, competitors });
+  const evidenceInput = [...signals, ...documentEvidence];
+  const evidenceDatabase = buildEvidenceDatabase({ marketItems: evidenceInput });
+  // evidence database is built after document evidence is assembled (see below)
 
   // Try to generate AI-powered insights if Granite is configured
   let aiContentSuggestions = null;
@@ -614,7 +655,7 @@ function buildContentSection(signals, productProfile) {
           title: "Urgent: keep the competitive publishing queue warm",
           copy: "The live signal engine did not produce a current lead signal, so the page is falling back to baseline content recommendations.",
         },
-    ideas: candidates.length ? candidates.map((signal, index) => createContentIdea(signal, index, productProfile)) : [],
+    ideas: candidates.length ? candidates.map((signal, index) => createContentIdea(signal, index, productProfile)).sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0)) : [],
   };
 }
 
@@ -665,7 +706,7 @@ function buildPmmSection(signals, productProfile, aiActions = null) {
           title: "Urgent PMM actions - monitoring mode",
           copy: "Live PMM triggers are temporarily thin, so the page is holding on baseline asset recommendations.",
         },
-    actions: dedupeById(actions).slice(0, 15),
+    actions: dedupeById(actions).sort((a, b) => ((b.aiGenerated === true) - (a.aiGenerated === true)) || (new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0))).slice(0, 15),
     aiMeta: aiActions?.meta || null,
   };
 }
@@ -700,7 +741,7 @@ function buildProductSection(signals, productProfile, competitors = []) {
 }
 
 function buildPositioningSection(signals, product, productProfile) {
-  const topThreats = topSignalsByCompetitor(signals).slice(0, 4);
+  const topThreats = topSignalsByCompetitor(signals).sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0)).slice(0, 4);
   const recommendationLead = topThreats[0];
   const responseAngles = topThreats.map((signal, index) => createResponseAngle(signal, index));
 
@@ -745,6 +786,7 @@ function createContentIdea(signal, index, productProfile) {
   return {
     id: `live-content-${signal.id}`,
     competitor: signal.competitor,
+    publishedAt: signal.publishedAt,
     icon: getIconForGroup(signal.group),
     title,
     summary: `${clipText(signal.summary, 190)} Map this to ${platform.toLowerCase()} with a direct ${productProfile.shortName} response to ${sourceNote}.`,
@@ -767,6 +809,7 @@ function createBattleCardAction(signal, index) {
   return {
     id: `live-pmm-battle-${signal.id}`,
     competitor: signal.competitor,
+    publishedAt: signal.publishedAt,
     icon: "X",
     title: `Battle card: Netezza vs ${shortName(signal.competitor)}`,
     summary: `Refresh the seller battle card with live evidence from ${signal.sourceLabel}. Focus on ${extractTheme(signal)} and current objection handlers.`,
@@ -786,6 +829,7 @@ function createRecommendedAssetAction(signal, index, productProfile) {
   return {
     id: `live-pmm-${strategy.id}-${signal.id}`,
     competitor: signal.competitor,
+    publishedAt: signal.publishedAt,
     icon: strategy.icon,
     title: `${strategy.asset}: ${productProfile.shortName} vs ${shortName(signal.competitor)}`,
     summary: `${strategy.summary} Trigger: ${possessive(signal.competitor)} ${signal.sourceLabel.toLowerCase()} evidence is pressing on ${theme}.`,
@@ -807,6 +851,7 @@ function createCounterPostAction(signal, productProfile) {
   return {
     id: `live-pmm-counter-${signal.id}`,
     competitor: signal.competitor,
+    publishedAt: signal.publishedAt,
     icon: "!",
     title: `Counter-post: ${shortName(signal.competitor)} ${signal.sourceLabel.toLowerCase()} narrative`,
     summary: `Create a short executive-ready post that answers ${possessive(signal.competitor)} latest ${signal.sourceLabel.toLowerCase()} message with a clearer ${productProfile.shortName} point of view.`,
@@ -824,6 +869,7 @@ function createExecutiveBriefingAction(signals, productProfile) {
   return {
     id: "live-pmm-cio-briefing",
     competitors: signals.map((signal) => signal.competitor),
+    publishedAt: signals[0]?.publishedAt || new Date().toISOString(),
     icon: "=",
     title: "CIO briefing: live competitive position",
     summary: `Executive-ready narrative covering the current pressure set across ${leaders}.`,
@@ -840,6 +886,7 @@ function createAnalystBriefingAction(signals, productProfile) {
   return {
     id: "live-pmm-analyst-briefing",
     competitors: signals.map((signal) => signal.competitor),
+    publishedAt: signals[0]?.publishedAt || new Date().toISOString(),
     icon: "^",
     title: "Analyst briefing topics - live narrative shifts",
     summary: `Package the latest competitive narratives into a concise analyst briefing memo so category framing includes ${productProfile.strategicRole}.`,
@@ -855,6 +902,7 @@ function createAnalystBriefingAction(signals, productProfile) {
 function createResponseAngle(signal, index) {
   return {
     competitor: signal.competitor,
+    publishedAt: signal.publishedAt,
     priority: index === 0 ? "Primary angle" : index === 1 ? "Rebuttal" : "Sales angle",
     title: `Counter ${shortName(signal.competitor)} on ${extractTheme(signal)}`,
     summary: `${possessive(signal.competitor)} latest ${signal.sourceLabel.toLowerCase()} signal is pressing on ${extractTheme(signal)}. That is exactly where Netezza should respond with lakehouse-ready performance, governed simplicity, and clearer workload-fit language.`,
@@ -903,6 +951,7 @@ function createMarketOverviewInsight(signal) {
 
   return {
     competitor: signal.competitor,
+    publishedAt: signal.publishedAt,
     priority: signal.freshnessLabel || "Live",
     title: signal.headline || `${signal.competitor} ${signal.sourceLabel} signal`,
     summary: signal.summary,
@@ -916,6 +965,7 @@ function createMarketOverviewInsight(signal) {
 function toSignalCitation(signal) {
   return {
     competitor: signal.competitor,
+    publishedAt: signal.publishedAt,
     sourceLabel: signal.sourceLabel,
     sourceBadge: signal.sourceBadge,
     sourceUrl: signal.sourceUrl,
