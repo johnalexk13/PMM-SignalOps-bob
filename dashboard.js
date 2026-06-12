@@ -7548,7 +7548,10 @@ async function fetchWorkspaceIntelligencePayload({ force = false } = {}) {
       body: JSON.stringify(requestBody),
     });
     if (postResponse.ok) {
-      return await postResponse.json();
+      return {
+        payload: await postResponse.json(),
+        mode: "api",
+      };
     }
   } catch (error) {
     console.warn("[dashboard] POST workspace-intelligence failed, falling back to GET", error);
