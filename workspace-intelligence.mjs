@@ -1300,13 +1300,21 @@ function selectContentCandidates(signals, limit) {
   const pool = freshSignals.length >= Math.min(limit, 8) ? freshSignals : ranked;
   const picks = [];
   const byCompetitor = new Map();
+  const seenThemes = new Set();
 
   for (const signal of pool) {
     const current = byCompetitor.get(signal.competitor) || 0;
     if (current >= 3) {
       continue;
     }
+    // Skip a signal whose competitor+theme combination is already represented,
+    // so we don't surface the same "X: AI-led modernization" card repeatedly.
+    const themeKey = `${signal.competitor}::${extractTheme(signal)}`;
+    if (seenThemes.has(themeKey)) {
+      continue;
+    }
     picks.push(signal);
+    seenThemes.add(themeKey);
     byCompetitor.set(signal.competitor, current + 1);
     if (picks.length === limit) {
       return picks;
@@ -1317,7 +1325,12 @@ function selectContentCandidates(signals, limit) {
     if (picks.some((item) => item.id === signal.id)) {
       continue;
     }
+    const themeKey = `${signal.competitor}::${extractTheme(signal)}`;
+    if (seenThemes.has(themeKey)) {
+      continue;
+    }
     picks.push(signal);
+    seenThemes.add(themeKey);
     if (picks.length === limit) {
       break;
     }
@@ -1490,10 +1503,23 @@ function getContentTitle(signal, index) {
   const short = shortName(signal.competitor);
   const owner = possessive(short);
   const theme = extractTheme(signal);
+  // Prefer the actual competitor headline when it is specific and usable, so
+  // cards reflect real activity instead of a repeated template.
+  const headline = String(signal.headline || "").trim();
+  const usableHeadline = headline
+    && headline.length >= 25
+    && headline.length <= 130
+    && !/^<|cdata|untitled|^https?:/i.test(headline);
   if (signal.group === "social") return `${owner} ${theme} narrative needs a direct executive response`;
   if (signal.group === "reviews") return `What ${short} reviews still reveal about ${theme}`;
-  if (signal.group === "website") return `${owner} ${theme} message needs a lakehouse performance-engine response`;
-  return `${capitalize(theme)} for lakehouse teams: a Netezza response to ${short}`;
+  if (signal.group === "website") {
+    return usableHeadline
+      ? `${short}: ${headline} - where ${theme} meets a Netezza response`
+      : `${owner} ${theme} message needs a lakehouse performance-engine response`;
+  }
+  return usableHeadline
+    ? `${short} signal: ${headline}`
+    : `${capitalize(theme)} for lakehouse teams: a Netezza response to ${short}`;
 }
 
 function buildContentOutline(signal, platform, title, productProfile) {

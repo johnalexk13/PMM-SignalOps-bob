@@ -2987,9 +2987,18 @@ function hydrateCompetitors(competitors) {
 }
 
 function normalizeCompetitor(competitor, index = 0) {
-  const name = typeof competitor === "string" ? competitor : competitor?.name;
+  let name = typeof competitor === "string" ? competitor : competitor?.name;
   const color = typeof competitor === "object" && competitor?.color ? competitor.color : getCompetitorColor(index);
   const url = typeof competitor === "object" && competitor?.url ? competitor.url : "";
+  // If a parent-brand name was stored (e.g. "Google", "Amazon") but the URL
+  // points to a specific product, upgrade the label to the product name.
+  if (url) {
+    const inferred = inferCompetitorNameFromUrl(url);
+    const generic = ["google", "amazon", "aws", "azure", "microsoft", "gcp"];
+    if (inferred && inferred !== "Competitor" && (!name || generic.includes(String(name).trim().toLowerCase()))) {
+      name = inferred;
+    }
+  }
   return {
     id: typeof competitor === "object" && competitor?.id ? competitor.id : createCompetitorId(name),
     name: String(name || "").trim(),
@@ -3103,6 +3112,7 @@ function hydrateDocumentSources(savedDocuments) {
       uploadedAt: document.uploadedAt || new Date().toISOString(),
       linkedTo: document.linkedTo || "Source library",
       dataUrl: document.dataUrl || "",
+      extractedText: document.extractedText || "",
       storageMode: document.storageMode || (document.dataUrl ? "Saved locally" : "Metadata only"),
     }));
 }
@@ -6921,6 +6931,12 @@ async function handleDocumentUpload(input) {
   const uploadedAt = new Date().toISOString();
   const additions = await Promise.all(files.map(async (file) => {
     const canStoreFile = file.size <= MAX_DOCUMENT_SOURCE_SIZE_BYTES;
+    const dataUrl = canStoreFile ? await readFileAsDataUrl(file) : "";
+    // Extract compact readable text now; this is small enough to persist and is
+    // what the analysis engine actually reads (works for PDFs too).
+    const extractedText = dataUrl
+      ? extractTextForStorage({ name: file.name, type: file.type, dataUrl })
+      : "";
     return {
       id: `document-source-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name: file.name,
@@ -6928,8 +6944,11 @@ async function handleDocumentUpload(input) {
       size: file.size,
       uploadedAt,
       linkedTo: getFocusProductDisplayName(),
-      dataUrl: canStoreFile ? await readFileAsDataUrl(file) : "",
-      storageMode: canStoreFile ? "Saved locally" : "Metadata only",
+      dataUrl,
+      extractedText,
+      storageMode: extractedText
+        ? "Analyzed - text saved"
+        : (canStoreFile ? "Saved locally" : "Metadata only"),
     };
   }));
 
@@ -7058,7 +7077,24 @@ function normalizeUrlInput(value) {
 
 function inferCompetitorNameFromUrl(url) {
   try {
-    const hostname = new URL(url).hostname.replace(/^www\./i, "");
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.replace(/^www\./i, "").toLowerCase();
+    const path = parsed.pathname.toLowerCase();
+    const full = `${hostname}${path}`;
+    // Recognise specific products so the label reads e.g. "Amazon Redshift"
+    // rather than just the parent brand "Amazon".
+    const PRODUCT_RULES = [
+      [/bigquery/, "Google BigQuery"],
+      [/redshift/, "Amazon Redshift"],
+      [/synapse/, "Azure Synapse"],
+      [/databricks/, "Databricks"],
+      [/snowflake/, "Snowflake"],
+      [/yellowbrick/, "Yellowbrick"],
+      [/teradata/, "Teradata"],
+    ];
+    for (const [pattern, label] of PRODUCT_RULES) {
+      if (pattern.test(full)) return label;
+    }
     const parts = hostname.split(".").filter(Boolean);
     const core = parts.length > 1 ? parts[parts.length - 2] : parts[0];
     return toTitleCase(core.replace(/[-_]+/g, " ")) || "Competitor";
@@ -7268,7 +7304,7 @@ function stripHeavyContentFromWorkspaces(productWorkspaces) {
       documentSources: (workspace.documentSources || []).map((doc) => (
         doc.isExternalLink || !(doc.dataUrl || "").length
           ? doc
-          : { ...doc, dataUrl: "", storageMode: "Metadata only - content too large to keep after a reload" }
+          : { ...doc, dataUrl: "", storageMode: doc.extractedText ? "Analyzed - text saved" : "Metadata only - content too large to keep after a reload" }
       )),
       marketFeed: workspace.marketFeed
         ? { ...workspace.marketFeed, items: (workspace.marketFeed.items || []).slice(0, 25) }
@@ -7388,10 +7424,14 @@ function getPersistableDocumentSources({ slim = false } = {}) {
       budget -= contentSize;
       return doc;
     }
+    // Drop the heavy base64 data URL but ALWAYS keep the small extracted text,
+    // so the analysis engine still has document content after a reload.
     return {
       ...doc,
       dataUrl: "",
-      storageMode: "Metadata only - content too large to keep after a reload",
+      storageMode: doc.extractedText
+        ? "Analyzed - text saved"
+        : "Metadata only - content too large to keep after a reload",
     };
   });
 }
@@ -7587,6 +7627,8 @@ async function loadMarketSignals({ force = false, showLoadingState = true } = {}
 
 const ANALYZABLE_TEXT_TYPES = ["text/", "application/json", "application/xml"];
 const ANALYZABLE_TEXT_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".html", ".htm", ".xml"];
+// Cap stored extracted text so several documents fit comfortably in localStorage.
+const EXTRACTED_TEXT_CAP_CHARS = 40000;
 
 function decodeDocumentText(dataUrl) {
   try {
@@ -7601,6 +7643,51 @@ function decodeDocumentText(dataUrl) {
   }
 }
 
+// Lightweight in-browser PDF text extraction. Pulls readable strings from PDF
+// content streams (text shown between parentheses in BT/ET text blocks and in
+// TJ/Tj operators). Not a full PDF engine, but recovers enough prose for the
+// capability/keyword scan without any external library or build step.
+function extractPdfText(dataUrl) {
+  try {
+    const base64 = String(dataUrl || "").split(",")[1] || "";
+    if (!base64) return "";
+    const binary = atob(base64);
+    // Latin1 view preserves byte values for the regex passes below.
+    let raw = "";
+    const chunk = 65536;
+    for (let i = 0; i < binary.length; i += chunk) {
+      raw += binary.slice(i, i + chunk);
+    }
+    const pieces = [];
+    // Match text inside ( ) including escaped parens, the usual PDF string form.
+    const stringRegex = /\(((?:\\.|[^\\()])*)\)/g;
+    let m;
+    while ((m = stringRegex.exec(raw)) !== null) {
+      let s = m[1]
+        .replace(/\\\(/g, "(").replace(/\\\)/g, ")").replace(/\\\\/g, "\\")
+        .replace(/\\n/g, " ").replace(/\\r/g, " ").replace(/\\t/g, " ");
+      if (s.trim()) pieces.push(s);
+      if (pieces.join(" ").length > EXTRACTED_TEXT_CAP_CHARS * 2) break;
+    }
+    let text = pieces.join(" ")
+      .replace(/[^\x20-\x7E\u00A0-\uFFFF]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return text;
+  } catch {
+    return "";
+  }
+}
+
+// Decide the best extraction for a file and return capped readable text.
+function extractTextForStorage({ name, type, dataUrl }) {
+  if (!dataUrl) return "";
+  const lowerName = String(name || "").toLowerCase();
+  const isPdf = String(type || "").includes("pdf") || lowerName.endsWith(".pdf");
+  let text = isPdf ? extractPdfText(dataUrl) : decodeDocumentText(dataUrl);
+  return (text || "").slice(0, EXTRACTED_TEXT_CAP_CHARS);
+}
+
 function buildAnalyzableDocuments() {
   const documents = state.documentSources || [];
   const analyzable = [];
@@ -7611,11 +7698,13 @@ function buildAnalyzableDocuments() {
       analyzable.push({ name: doc.name, url: doc.dataUrl });
       continue;
     }
-    const lowerName = String(doc.name || "").toLowerCase();
-    const isTextLike = ANALYZABLE_TEXT_TYPES.some((prefix) => String(doc.type || "").startsWith(prefix))
-      || ANALYZABLE_TEXT_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
-    if (!isTextLike || !doc.dataUrl) continue;
-    const text = decodeDocumentText(doc.dataUrl).slice(0, 60000);
+    // Prefer pre-extracted text (survives reload); fall back to decoding the
+    // data URL if it's still in memory this session.
+    let text = String(doc.extractedText || "");
+    if (!text && doc.dataUrl) {
+      text = extractTextForStorage({ name: doc.name, type: doc.type, dataUrl: doc.dataUrl });
+    }
+    text = text.slice(0, 60000);
     if (!text.trim()) continue;
     totalChars += text.length;
     analyzable.push({ name: doc.name, text });
