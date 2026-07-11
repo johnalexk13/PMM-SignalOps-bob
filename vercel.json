@@ -1,4 +1,10 @@
 {
+    "rewrites": [
+        { "source": "/api/propel-insights",        "destination": "/api/propel-insights.mjs" },
+        { "source": "/api/workspace-intelligence", "destination": "/api/workspace-intelligence.mjs" },
+        { "source": "/api/market-signals",         "destination": "/api/market-signals.mjs" },
+        { "source": "/api/community-signals",      "destination": "/api/community-signals.mjs" }
+    ],
     "headers": [
           {
                   "source": "/",

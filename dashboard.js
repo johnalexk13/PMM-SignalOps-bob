@@ -40,7 +40,7 @@ const MARKET_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const COMMUNITY_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_DOCUMENT_SOURCE_SIZE_BYTES = 2 * 1024 * 1024;
 const STATIC_WORKSPACE_INTELLIGENCE_ENDPOINT = "./data/workspace-intelligence.json";
-const PMM_PAGE_IDS = ["overview", "content", "events", "market", "product", "positioning", "manage"];
+const PMM_PAGE_IDS = ["overview", "content", "events", "market", "product", "positioning", "knowledge", "manage"];
 const COMMUNITY_PAGE_IDS = ["community-announcements", "community-thought-leadership", "community-replies", "community-manage"];
 
 const SECTION_CONFIG = {
@@ -1257,6 +1257,23 @@ const INSIGHT_PAGES = [
       { competitor: "Snowflake / Redshift", priority: "Sales angle", title: "Use economics and workload fit to sharpen lakehouse decisions", summary: "Cost predictability and workload-specific performance remain practical ways to make competitive evaluations clearer for buyers.", recommendation: "Equip sellers with concise proof on performance certainty, economics, and open-data execution.", tags: ["Economics", "Performance", "Sales play"] },
     ],
   },
+  {
+    id: "knowledge",
+    order: 6,
+    title: "IBM Knowledge",
+    badge: "IBM Propel",
+    tone: "positioning",
+    description: "Authoritative IBM product intelligence from IBM Docs, Seismic, and IBM Marketing — including competitive positioning, capabilities, and sales enablement content sourced from IBM Product Knowledge.",
+    drives: "Positioning, competitive counters, sales enablement",
+    overviewHeadline: "Surface authoritative IBM positioning, competitive counters, and enablement content from IBM Product Knowledge.",
+    sourceIntro: "IBM Docs, Seismic competitive decks, IBM Marketing, and IBM Cloud Docs — refreshed through the IBM Product Knowledge Propel connector.",
+    sources: [],
+    highlights: [
+      { competitor: "Snowflake", priority: "Seismic deck", title: "Counter Snowflake with IBM's open architecture + cost story", summary: "Snowflake's proprietary design risks vendor lock-in and excludes on-premises deployment. IBM's counter: open architecture, hybrid control, and 30–40% cost reduction through watsonx.data workload offload.", recommendation: "Use the IBM Seismic watsonx.data Competitive and Objection Handling Deck for deal support and seller enablement.", tags: ["Competitive", "Seismic", "Cost story"] },
+      { competitor: "Across competitors", priority: "IBM Docs", title: "Lead with Netezza hybrid deployment — SaaS, BYOC, on-prem, appliance", summary: "IBM Netezza uniquely supports all four deployment models. Competitors promote multi-cloud but not true hybrid-cloud deployment — a key differentiation to hammer in evaluations.", recommendation: "Feature the deployment flexibility narrative in web copy, seller decks, and analyst briefings.", tags: ["Hybrid", "BYOC", "Differentiation"] },
+      { competitor: "Databricks", priority: "Roadmap", title: "watsonx.data 2026 roadmap adds AI-enabled connectors and Databricks native support", summary: "IBM's 2026 roadmap includes AI-enabled connector creation, AWS Databricks native connector, SAP connectors, and MCP Server for LLM infrastructure integration.", recommendation: "Incorporate the 2026 roadmap momentum into content and sales briefings to counter Databricks AI ecosystem narratives.", tags: ["Roadmap", "AI", "Connectors"] },
+    ],
+  },
 ];
 
 const MARKET_FILTERS = [
@@ -2452,6 +2469,7 @@ const refs = {
     market: document.querySelector("#page-market"),
     product: document.querySelector("#page-product"),
     positioning: document.querySelector("#page-positioning"),
+    knowledge: document.querySelector("#page-knowledge"),
     manage: document.querySelector("#page-manage"),
     "community-announcements": document.querySelector("#page-community-announcements"),
     "community-thought-leadership": document.querySelector("#page-community-thought-leadership"),
@@ -3900,7 +3918,153 @@ function renderPage(pageId) {
       ? renderContentPage(page)
     : pageId === "market"
       ? renderMarketPage(page)
+    : pageId === "knowledge"
+      ? renderIbmKnowledgePage(page)
       : renderGenericPage(page);
+}
+
+function renderIbmKnowledgePage(page) {
+  const productShortName = getFocusProductShortName();
+  const propelInsights = state.liveInsights?.propelInsights || null;
+  const mode = propelInsights?.meta?.mode || "seeded";
+  const generatedAt = propelInsights?.meta?.generatedAt || null;
+
+  const CATEGORY_LABELS = {
+    positioning:  "IBM Positioning",
+    competitive:  "Competitive Intel",
+    capabilities: "Product Capabilities",
+    integration:  "Integration & AI",
+    enablement:   "Sales Enablement",
+  };
+
+  const CATEGORY_BADGE_TONES = {
+    positioning:  "positioning",
+    competitive:  "content",
+    capabilities: "product",
+    integration:  "events",
+    enablement:   "market",
+  };
+
+  const SOURCE_BADGE_CLASS = {
+    seismic:   "tone-positioning",
+    ibm_docs:  "tone-product",
+    cloud_docs: "tone-events",
+    marketing: "tone-market",
+  };
+
+  function renderKnowledgeCard(item) {
+    const badgeClass = SOURCE_BADGE_CLASS[item.source] || "tone-market";
+    const catLabel   = CATEGORY_LABELS[item.category] || "IBM Knowledge";
+    const catTone    = CATEGORY_BADGE_TONES[item.category] || "positioning";
+    return `
+      <article class="summary-card knowledge-card">
+        <div class="summary-top">
+          <div>
+            <span class="tone-pill tone-${catTone}">${escapeHtml(catLabel)}</span>
+            <h3>${escapeHtml(item.title)}</h3>
+          </div>
+          <span class="mini-pill ${badgeClass}">${escapeHtml(item.sourceLabel || item.source)}</span>
+        </div>
+        <p class="summary-copy">${escapeHtml(item.snippet?.slice(0, 360) || "")}${(item.snippet?.length || 0) > 360 ? "…" : ""}</p>
+        <div class="card-meta-row">
+          <span class="tag tone-${catTone}">${escapeHtml(catLabel)}</span>
+          <span class="tag">${escapeHtml(item.freshnessLabel || item.sourceLabel || "IBM source")}</span>
+        </div>
+        ${item.url ? `<a class="source-link" href="${escapeAttribute(item.url)}" target="_blank" rel="noopener noreferrer">Open ${escapeHtml(item.sourceLabel || "source")} →</a>` : ""}
+      </article>
+    `;
+  }
+
+  function renderKnowledgeSection(label, items, tone) {
+    if (!items?.length) return "";
+    return `
+      <section class="knowledge-section">
+        <div class="section-subheading">
+          <h3>${escapeHtml(label)}</h3>
+          <span class="mini-pill tone-${tone}">${items.length} items</span>
+        </div>
+        <div class="card-grid">
+          ${items.map(renderKnowledgeCard).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  const highlights    = propelInsights?.highlights        || productizeForFocusProduct(page.highlights);
+  const positioning   = propelInsights?.positioning?.items  || [];
+  const competitive   = propelInsights?.competitive?.items  || [];
+  const capabilities  = propelInsights?.capabilities?.items || [];
+  const integration   = propelInsights?.integration?.items  || [];
+  const enablement    = propelInsights?.enablement?.items   || [];
+  const suggested     = propelInsights?.suggestedAction     || null;
+
+  const modeLabel = mode === "live"
+    ? `Live — IBM Product Knowledge`
+    : `Seeded from IBM Product Knowledge`;
+  const freshLabel = generatedAt
+    ? `Refreshed ${formatRelativeTime(generatedAt)}`
+    : "Pre-seeded on 2026-05-29";
+
+  return `
+    <div class="section-heading">
+      <div>
+        <p class="section-kicker">${escapeHtml(page.badge)}</p>
+        <h2>${escapeHtml(page.title)}</h2>
+        <p class="section-copy">${escapeHtml(focusProductText(page.description))}</p>
+      </div>
+      <div class="section-heading-meta">
+        <span class="mini-pill tone-positioning">${escapeHtml(modeLabel)}</span>
+        <span class="meta-note">${escapeHtml(freshLabel)}</span>
+        <button class="secondary-button" type="button" data-refresh-knowledge>Refresh IBM Knowledge</button>
+      </div>
+    </div>
+
+    ${suggested ? `<article class="panel alert-panel knowledge-alert">
+      <div class="alert-icon">⚡</div>
+      <div class="alert-body">
+        <p class="alert-title">${escapeHtml(suggested.title)}</p>
+        <p class="alert-copy">${escapeHtml(suggested.summary)}</p>
+        ${suggested.sourceUrl ? `<a class="source-link" href="${escapeAttribute(suggested.sourceUrl)}" target="_blank" rel="noopener noreferrer">Open ${escapeHtml(suggested.sourceLabel || "source")} →</a>` : ""}
+      </div>
+    </article>` : ""}
+
+    <article class="panel">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">IBM Knowledge highlights</p>
+          <h3>Top insights from IBM Product Knowledge</h3>
+          <p class="panel-subcopy">${escapeHtml(focusProductText(page.sourceIntro))}</p>
+        </div>
+        <span class="mini-pill">${(highlights?.length || 0)} highlights</span>
+      </div>
+      <div class="card-grid">
+        ${Array.isArray(highlights) && highlights.length
+          ? highlights.map((item) => item.snippet !== undefined ? renderKnowledgeCard(item) : `
+              <article class="summary-card knowledge-card">
+                <div class="summary-top">
+                  <div>
+                    <span class="tone-pill tone-${item.category ? CATEGORY_BADGE_TONES[item.category] || "positioning" : "positioning"}">${escapeHtml(item.priority || "IBM Knowledge")}</span>
+                    <h3>${escapeHtml(item.title)}</h3>
+                  </div>
+                </div>
+                <p class="summary-copy">${escapeHtml(item.summary || "")}</p>
+                <p class="summary-copy"><strong>Recommended next move:</strong> ${escapeHtml(item.recommendation || "")}</p>
+                <div class="card-meta-row">
+                  ${(item.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
+                </div>
+              </article>
+            `).join("")
+          : `<div class="empty-state">No highlights available yet. Refresh IBM Knowledge to load the latest data.</div>`
+        }
+      </div>
+    </article>
+
+    ${renderKnowledgeSection("IBM Positioning", positioning, "positioning")}
+    ${renderKnowledgeSection("Competitive Intelligence", competitive, "content")}
+    ${renderKnowledgeSection("Product Capabilities", capabilities, "product")}
+    ${renderKnowledgeSection("Integration & AI", integration, "events")}
+    ${renderKnowledgeSection("Sales Enablement", enablement, "market")}
+  `;
 }
 
 function renderManagePage() {
@@ -6691,6 +6855,12 @@ function attachEvents() {
       persistShellState();
       return;
     }
+
+    const knowledgeRefreshButton = event.target.closest("[data-refresh-knowledge]");
+    if (knowledgeRefreshButton) {
+      loadWorkspaceIntelligence({ force: true, showLoadingState: true });
+      return;
+    }
   });
 
   document.addEventListener("input", (event) => {
@@ -8020,6 +8190,16 @@ function getMarketFeedStatus() {
 
 function formatDate(date) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+}
+
+function formatRelativeTime(value) {
+  const hours = (Date.now() - new Date(value).getTime()) / 36e5;
+  if (!Number.isFinite(hours) || hours < 0) return "Unknown";
+  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))} min ago`;
+  if (hours < 24) return `${Math.round(hours)} hr ago`;
+  if (hours < 24 * 7) return `${Math.round(hours / 24)} days ago`;
+  if (hours < 24 * 30) return `${Math.round(hours / (24 * 7))} weeks ago`;
+  return `${Math.round(hours / (24 * 30))} months ago`;
 }
 
 function formatDateTime(date) {

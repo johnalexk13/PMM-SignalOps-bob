@@ -33,6 +33,302 @@
       "strategicRole": "the performant warehouse engine a lakehouse needs"
     }
   },
+  "propelInsights": {
+    "meta": {
+      "generatedAt": "2026-05-29T12:00:00.000Z",
+      "productName": "IBM Netezza",
+      "competitors": ["Databricks", "Snowflake", "Google BigQuery", "Amazon Redshift", "Azure Synapse", "Teradata"],
+      "mode": "seeded",
+      "seededAt": "2026-05-29T00:00:00Z",
+      "itemCount": 11,
+      "note": "Seeded from IBM Product Knowledge MCP connector on 2026-05-29. Set PROPEL_API_URL to enable live refresh."
+    },
+    "highlights": [
+      {
+        "id": "prop-pos-1",
+        "title": "Why the lakehouse alone isn't enough: The case for performance-first analytics",
+        "snippet": "Netezza plays a critical role in helping enterprises bring performance into modern lakehouse architectures. Built for workloads where speed, concurrency, and reliability are essential, Netezza pairs high performance with flexibility across deployment models — SaaS, BYOC (AWS & Azure), and on-premises appliance. Integration with open table formats (Apache Iceberg, Parquet) and REST catalog capabilities ensures full lakehouse interoperability while preserving architectural freedom.",
+        "url": "https://www.ibm.com/think/insights/lakehouse-not-enough-case-for-performance-first-analytics",
+        "source": "marketing",
+        "publishedAt": "2025-03-12T00:00:00Z",
+        "category": "positioning",
+        "tag": "IBM Positioning",
+        "sourceLabel": "IBM Marketing",
+        "sourceBadge": "IBM",
+        "freshnessLabel": "14 months ago",
+        "isNew": false
+      },
+      {
+        "id": "prop-comp-1",
+        "title": "watsonx.data Competitive and Objection Handling — Snowflake",
+        "snippet": "Snowflake maintains 400+ partner ecosystem and Cortex AI/ML capabilities. Its cloud-native architecture and custom SQL engine optimize performance vs. legacy tech, BUT proprietary design risks vendor lock-in and excludes on-premises deployment. Key IBM counter: open architecture, hybrid control, and 30–40% cost reduction through workload offload to watsonx.data lakehouse without replacing the existing warehouse.",
+        "url": "https://ibm.seismic.com/Link/Content/DCT3qFJGqhDX7GmX8g3489BQbgPV",
+        "source": "seismic",
+        "publishedAt": "2025-07-22T00:00:00Z",
+        "category": "competitive",
+        "tag": "Competitive Intel",
+        "sourceLabel": "Seismic",
+        "sourceBadge": "SEISMIC",
+        "freshnessLabel": "10 months ago",
+        "isNew": false
+      },
+      {
+        "id": "prop-cap-1",
+        "title": "Q1 2026 TechSales: Netezza Performance Server — Workload Placement Guide",
+        "snippet": "Best-fit workloads for Netezza: (✓) Structured reporting — fast, predictable SQL; (✓) Model scoring with INZA — in-database scoring reduces movement; (✓) ML training/feature prep — INZA + Spark/watsonx integration; (✓) Geospatial analysis — built-in INZA functions; (✓) Cold/historical data — Iceberg + object storage; (✓) ELT pipelines — scalable transformation; (✓) Ad hoc exploratory query — low-latency SQL.",
+        "url": "https://ibm.seismic.com/Link/Content/DCg4qhXDhf963GCGR4ccfRWjH3mj",
+        "source": "seismic",
+        "publishedAt": "2026-01-15T00:00:00Z",
+        "category": "capabilities",
+        "tag": "Product Capabilities",
+        "sourceLabel": "Seismic",
+        "sourceBadge": "SEISMIC",
+        "freshnessLabel": "4 months ago",
+        "isNew": false
+      },
+      {
+        "id": "prop-int-1",
+        "title": "Conestoga Wood Specialties: Lakehouse with watsonx.data and Netezza on AWS",
+        "snippet": "Customer reference: Conestoga (1,100 employees, 4 US locations) operationalized business analytics and AI workloads using Netezza on AWS integrated with watsonx.data. Unified, accessible, and scalable analytics almost anywhere. Netezza makes data ready for IBM Cognos Analytics and AI workloads.",
+        "url": "https://www.ibm.com/case-studies/conestoga-wood-specialties",
+        "source": "marketing",
+        "publishedAt": "2024-01-12T00:00:00Z",
+        "category": "integration",
+        "tag": "Integration & AI",
+        "sourceLabel": "IBM Marketing",
+        "sourceBadge": "IBM",
+        "freshnessLabel": "17 months ago",
+        "isNew": false
+      },
+      {
+        "id": "prop-enb-1",
+        "title": "Netezza 101 Sales Enablement for Business Partners — Sep 2025",
+        "snippet": "Key selling motions: (1) Target install base and competitor base customers with hybrid cloud intent; (2) Lead with Netezza differentiation: open-source (Iceberg/Spark/Presto C++), multiple fit-for-purpose query engines, in-database analytics, hybrid deployment; (3) Cross-sell entry point: watsonx.data for AI/gen AI data readiness; (4) Competitive: Snowflake (SaaS only, vendor lock-in), Databricks (lakehouse complexity), Teradata (cost, legacy).",
+        "url": "https://ibm.seismic.com/Link/Content/DCdJcHB6g396682RbcGR4mcmFQ8P",
+        "source": "seismic",
+        "publishedAt": "2025-09-04T00:00:00Z",
+        "category": "enablement",
+        "tag": "Sales Enablement",
+        "sourceLabel": "Seismic",
+        "sourceBadge": "SEISMIC",
+        "freshnessLabel": "9 months ago",
+        "isNew": false
+      }
+    ],
+    "positioning": {
+      "category": "positioning",
+      "items": [
+        {
+          "id": "prop-pos-1",
+          "title": "Why the lakehouse alone isn't enough: The case for performance-first analytics",
+          "snippet": "Netezza plays a critical role in helping enterprises bring performance into modern lakehouse architectures. Built for workloads where speed, concurrency, and reliability are essential, Netezza pairs high performance with flexibility across deployment models — SaaS, BYOC (AWS & Azure), and on-premises appliance. Integration with open table formats (Apache Iceberg, Parquet) and REST catalog capabilities ensures full lakehouse interoperability while preserving architectural freedom.",
+          "url": "https://www.ibm.com/think/insights/lakehouse-not-enough-case-for-performance-first-analytics",
+          "source": "marketing",
+          "publishedAt": "2025-03-12T00:00:00Z",
+          "category": "positioning",
+          "tag": "IBM Positioning",
+          "sourceLabel": "IBM Marketing",
+          "sourceBadge": "IBM",
+          "freshnessLabel": "14 months ago",
+          "isNew": false
+        },
+        {
+          "id": "prop-pos-2",
+          "title": "IBM Netezza — unified, governed, cost-effective data warehouse for hybrid cloud",
+          "snippet": "IBM Netezza delivers deep analytics, BI, and AI/ML through a unified warehouse. Integration with open table and open data formats (Apache Iceberg, Parquet) plus native Cloud Object Store support for cost efficiency. Seamless dbt load support, faster queries at scale, and hybrid flexibility across appliance, SaaS, and BYOC. Now available on AWS and Microsoft Azure.",
+          "url": "https://www.ibm.com/products/netezza",
+          "source": "marketing",
+          "publishedAt": "2025-05-01T00:00:00Z",
+          "category": "positioning",
+          "tag": "IBM Positioning",
+          "sourceLabel": "IBM Marketing",
+          "sourceBadge": "IBM",
+          "freshnessLabel": "13 months ago",
+          "isNew": false
+        },
+        {
+          "id": "prop-pos-3",
+          "title": "SDR Enablement: Netezza Competitive Differentiation Strategies",
+          "snippet": "Netezza must lean on strengths: (1) Hybrid and multi-cloud deployment — competitors promote multi-cloud but not true hybrid-cloud. (2) Multiple open-source components (Iceberg / Spark / Presto C++) for interoperability and cost optimization. (3) Differentiators: granular scaling, price-performance, in-database and geospatial analytics, speed, security & governance. (4) Tie of watsonx.data as AI entry point. Netezza competes in data warehouse and lakehouse market targeting install base, competitor base, and customers with cross-sell intent.",
+          "url": "https://ibm.seismic.com/Link/Content/DCcgHhjVTGXjb8THpX4c236qVVWV",
+          "source": "seismic",
+          "publishedAt": "2024-11-01T00:00:00Z",
+          "category": "positioning",
+          "tag": "IBM Positioning",
+          "sourceLabel": "Seismic",
+          "sourceBadge": "SEISMIC",
+          "freshnessLabel": "7 months ago",
+          "isNew": false
+        }
+      ]
+    },
+    "competitive": {
+      "category": "competitive",
+      "items": [
+        {
+          "id": "prop-comp-1",
+          "title": "watsonx.data Competitive and Objection Handling — Snowflake",
+          "snippet": "Snowflake maintains 400+ partner ecosystem and Cortex AI/ML capabilities. Its cloud-native architecture and custom SQL engine optimize performance vs. legacy tech, BUT proprietary design risks vendor lock-in and excludes on-premises deployment. Key IBM counter: open architecture, hybrid control, and 30–40% cost reduction through workload offload to watsonx.data lakehouse without replacing the existing warehouse.",
+          "url": "https://ibm.seismic.com/Link/Content/DCT3qFJGqhDX7GmX8g3489BQbgPV",
+          "source": "seismic",
+          "publishedAt": "2025-07-22T00:00:00Z",
+          "category": "competitive",
+          "tag": "Competitive Intel",
+          "sourceLabel": "Seismic",
+          "sourceBadge": "SEISMIC",
+          "freshnessLabel": "10 months ago",
+          "isNew": false
+        },
+        {
+          "id": "prop-comp-2",
+          "title": "Snowflake Q1 2026: Warehouse Cost Insights & Tag Support",
+          "snippet": "Snowflake launched granular warehouse-level and cloud services cost visibility (GA March 2026) with automatic cost allocation via tags — integrated with Cloudability. IBM counter: Netezza's cost-predictable deployment model with BYOC and on-prem control avoids the variable Snowflake credit model that spikes as usage scales.",
+          "url": "https://ibm.seismic.com/Link/Content/DCPMB4FVcRMWh8QR7f3PWhpgc4FP",
+          "source": "seismic",
+          "publishedAt": "2026-03-15T00:00:00Z",
+          "category": "competitive",
+          "tag": "Competitive Intel",
+          "sourceLabel": "Seismic",
+          "sourceBadge": "SEISMIC",
+          "freshnessLabel": "2 months ago",
+          "isNew": false
+        },
+        {
+          "id": "prop-comp-3",
+          "title": "Snowflake Augmentation: Cut Snowflake Costs 30–40% Without Replacing Your Warehouse",
+          "snippet": "IBM's sales play: augment Snowflake customers with a Data Lakehouse to offload specific workloads and reduce annual costs by 30–40%. Seamless shift with little-to-no code migration, keeping existing architecture intact with zero performance degradation. Target: Snowflake customers seeing costs rise sharply as usage scales.",
+          "url": "https://ibm.seismic.com/Link/Content/DCX4gBJhRj27787XhVC4MPj3XCJB",
+          "source": "seismic",
+          "publishedAt": "2025-02-17T00:00:00Z",
+          "category": "competitive",
+          "tag": "Competitive Intel",
+          "sourceLabel": "Seismic",
+          "sourceBadge": "SEISMIC",
+          "freshnessLabel": "15 months ago",
+          "isNew": false
+        }
+      ]
+    },
+    "capabilities": {
+      "category": "capabilities",
+      "items": [
+        {
+          "id": "prop-cap-1",
+          "title": "Q1 2026 TechSales: Netezza Performance Server — Workload Placement Guide",
+          "snippet": "Best-fit workloads for Netezza: (✓) Structured reporting — fast, predictable SQL; (✓) Model scoring with INZA — in-database scoring reduces movement; (✓) ML training/feature prep — INZA + Spark/watsonx integration; (✓) Geospatial analysis — built-in INZA functions; (✓) Cold/historical data — Iceberg + object storage; (✓) ELT pipelines — scalable transformation; (✓) Ad hoc exploratory query — low-latency SQL over native or Iceberg tables.",
+          "url": "https://ibm.seismic.com/Link/Content/DCg4qhXDhf963GCGR4ccfRWjH3mj",
+          "source": "seismic",
+          "publishedAt": "2026-01-15T00:00:00Z",
+          "category": "capabilities",
+          "tag": "Product Capabilities",
+          "sourceLabel": "Seismic",
+          "sourceBadge": "SEISMIC",
+          "freshnessLabel": "4 months ago",
+          "isNew": false
+        },
+        {
+          "id": "prop-cap-2",
+          "title": "Netezza + watsonx.data: Unify and Share Data for Generative AI Applications",
+          "snippet": "GA integration of Netezza on-premises (Cloud Pak for Data System) and Netezza SaaS with watsonx.data. Enables: connecting to Hive Metastore and querying Apache Iceberg tables on object storage; combining Iceberg (cold) with Netezza native (hot/warm) tables; optimizing workloads across Presto and Spark engines for price-performance. Brings new generative AI capabilities for Netezza customers via watsonx.data pipelines.",
+          "url": "https://www.ibm.com/new/announcements/unify-and-share-data-across-netezza-and-watsonx-data-for-new-generative-ai-applications",
+          "source": "ibm_docs",
+          "publishedAt": "2024-10-01T00:00:00Z",
+          "category": "capabilities",
+          "tag": "Product Capabilities",
+          "sourceLabel": "IBM Docs",
+          "sourceBadge": "IBMDOCS",
+          "freshnessLabel": "8 months ago",
+          "isNew": false
+        },
+        {
+          "id": "prop-cap-3",
+          "title": "watsonx.data Integration Roadmap 2026 — New Connectors and AI Agent Support",
+          "snippet": "2026 roadmap highlights: AI-enabled connector creation (production-ready in minutes, open-source, no IBM infra dependency); Snowflake Partner Connect (batch, streaming, replication); AWS Databricks native connector; SAP ECC/ERP, SAP S/4HANA, SAP BW & BW/4HANA; Unstructured Data Integration (Q2 2026); MCP Server for LLM infrastructure integration; Python SDK.",
+          "url": "https://ibm.seismic.com/Link/Content/DC2X7Gb8gcgXdGFMGJD74dd3VpqP",
+          "source": "seismic",
+          "publishedAt": "2026-04-18T00:00:00Z",
+          "category": "capabilities",
+          "tag": "Product Capabilities",
+          "sourceLabel": "Seismic",
+          "sourceBadge": "SEISMIC",
+          "freshnessLabel": "6 weeks ago",
+          "isNew": false
+        }
+      ]
+    },
+    "integration": {
+      "category": "integration",
+      "items": [
+        {
+          "id": "prop-int-1",
+          "title": "Conestoga Wood Specialties: Lakehouse with watsonx.data and Netezza on AWS",
+          "snippet": "Customer reference: Conestoga (1,100 employees, 4 US locations) operationalized business analytics and AI workloads using Netezza on AWS integrated with watsonx.data. Unified, accessible, and scalable analytics almost anywhere. Netezza makes data ready for IBM Cognos Analytics and AI workloads.",
+          "url": "https://www.ibm.com/case-studies/conestoga-wood-specialties",
+          "source": "marketing",
+          "publishedAt": "2024-01-12T00:00:00Z",
+          "category": "integration",
+          "tag": "Integration & AI",
+          "sourceLabel": "IBM Marketing",
+          "sourceBadge": "IBM",
+          "freshnessLabel": "17 months ago",
+          "isNew": false
+        },
+        {
+          "id": "prop-int-2",
+          "title": "Netezza Performance Server — Integrating Cloud Pak for Data System with watsonx.data",
+          "snippet": "Connect Netezza Performance Server for Cloud Pak for Data System to watsonx.data: connect to Hive Metastore (HMS); query Apache Iceberg tables on S3 object store; combine Iceberg tables with Netezza native tables; cross-instance data sharing via shared metadata; read/write to Apache Iceberg on cost-efficient object storage on-premises or in cloud.",
+          "url": "https://www.ibm.com/docs/en/netezza?topic=10x-integrating-cloud-pak-data-system-watsonxdata",
+          "source": "ibm_docs",
+          "publishedAt": "2024-06-15T00:00:00Z",
+          "category": "integration",
+          "tag": "Integration & AI",
+          "sourceLabel": "IBM Docs",
+          "sourceBadge": "IBMDOCS",
+          "freshnessLabel": "11 months ago",
+          "isNew": false
+        }
+      ]
+    },
+    "enablement": {
+      "category": "enablement",
+      "items": [
+        {
+          "id": "prop-enb-1",
+          "title": "Netezza 101 Sales Enablement for Business Partners — Sep 2025",
+          "snippet": "Key selling motions: (1) Target install base and competitor base customers with hybrid cloud intent; (2) Lead with Netezza differentiation: open-source (Iceberg/Spark/Presto C++), multiple fit-for-purpose query engines, in-database analytics, hybrid deployment; (3) Cross-sell entry point: watsonx.data for AI/gen AI data readiness; (4) Competitive: Snowflake (SaaS only, vendor lock-in), Databricks (lakehouse complexity), Teradata (cost, legacy). Key proof: data warehouse appliance category coined by Netezza.",
+          "url": "https://ibm.seismic.com/Link/Content/DCdJcHB6g396682RbcGR4mcmFQ8P",
+          "source": "seismic",
+          "publishedAt": "2025-09-04T00:00:00Z",
+          "category": "enablement",
+          "tag": "Sales Enablement",
+          "sourceLabel": "Seismic",
+          "sourceBadge": "SEISMIC",
+          "freshnessLabel": "9 months ago",
+          "isNew": false
+        },
+        {
+          "id": "prop-enb-2",
+          "title": "Netezza Customer Use Cases — North American Bank Modernization",
+          "snippet": "North American Bank migrating legacy Netezza Mako systems to Netezza Performance Server: 2–3x performance improvement, removed I/O bottlenecks, 100% Netezza compatibility, future cloud migration path. Also leveraging Watson Knowledge Catalog and data virtualization on CP4D. Applicable verticals: Banking & Financial Markets, regulated industries needing risk-free warehouse modernization.",
+          "url": "https://ibm.seismic.com/Link/Content/DCVQXRJqJ7bcmGWPTJ4MHggdW9Pj",
+          "source": "seismic",
+          "publishedAt": "2025-05-09T00:00:00Z",
+          "category": "enablement",
+          "tag": "Sales Enablement",
+          "sourceLabel": "Seismic",
+          "sourceBadge": "SEISMIC",
+          "freshnessLabel": "12 months ago",
+          "isNew": false
+        }
+      ]
+    },
+    "suggestedAction": {
+      "title": "Counter Snowflake with IBM's open architecture + cost story",
+      "summary": "Use the IBM Seismic competitive deck and positioning content to build a battle card or objection handler grounded in authoritative IBM evidence — not web-crawl signals alone.",
+      "sourceUrl": "https://ibm.seismic.com/Link/Content/DCT3qFJGqhDX7GmX8g3489BQbgPV",
+      "sourceLabel": "IBM Seismic"
+    }
+  },
   "marketFeed": {
     "meta": {
       "status": "Fallback snapshot",

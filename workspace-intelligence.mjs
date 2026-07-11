@@ -12,6 +12,7 @@ import {
   buildPMMActionsPrompt,
   parseGraniteJSON,
 } from "./lib/granite-ai.mjs";
+import { getPropelKnowledge } from "./lib/propel-knowledge.mjs";
 
 // Default competitors for backward compatibility
 const DEFAULT_COMPETITORS = [
@@ -597,13 +598,19 @@ export async function getWorkspaceIntelligence({ force = false, product = {}, co
   }
 
   console.log(`[workspace-intelligence] Fetching intelligence for competitors: ${competitors.map((c) => (typeof c === "string" ? c : c?.name || "")).filter(Boolean).join(', ')}`);
-  const marketFeed = await getMarketSignalsFeed({ force, competitors });
+
+  // Fetch market signals AND IBM Product Knowledge (Propel MCP) in parallel
+  const competitorNames = competitors.map((c) => (typeof c === "string" ? c : c?.name || "")).filter(Boolean);
+  const [marketFeed, propelKnowledge] = await Promise.all([
+    getMarketSignalsFeed({ force, competitors }),
+    getPropelKnowledge({ productName: productProfile.displayName || productProfile.productName || "IBM Netezza", competitors: competitorNames, force }),
+  ]);
+
   const signals = Array.isArray(marketFeed.items) ? marketFeed.items : [];
   const capabilityEvidence = await scanCapabilityEvidence({ productProfile, competitors, marketItems: signals, documents });
   const documentEvidence = await buildDocumentEvidence({ documents, competitors });
   const evidenceInput = [...signals, ...documentEvidence];
   const evidenceDatabase = buildEvidenceDatabase({ marketItems: evidenceInput });
-  // evidence database is built after document evidence is assembled (see below)
 
   // Try to generate AI-powered insights if Granite is configured
   let aiContentSuggestions = null;
@@ -623,6 +630,9 @@ export async function getWorkspaceIntelligence({ force = false, product = {}, co
   const positioning = localizeForProduct(buildPositioningSection(rankEvidenceForPurpose(evidenceDatabase.items, "positioning", { limit: 12, diversify: false }), productSection, productProfile), productProfile);
   const overview = localizeForProduct(buildOverviewSection(rankEvidenceForPurpose(evidenceDatabase.items, "overview", { limit: 12, diversify: false }), { content, events, product: productSection, positioning }, productProfile), productProfile);
 
+  // Build propelInsights section surfaced in the dashboard Knowledge panel
+  const propelInsights = buildPropelInsightsSection(propelKnowledge, productProfile);
+
   const payload = {
     meta: {
       ...marketFeed.meta,
@@ -630,6 +640,8 @@ export async function getWorkspaceIntelligence({ force = false, product = {}, co
       generatedAt: new Date().toISOString(),
       evidenceMode: evidenceDatabase.meta.mode,
       pmmAssetSourceLinks: PMM_BEST_PRACTICE_SOURCES,
+      propelMode: propelKnowledge.meta.mode,
+      propelGeneratedAt: propelKnowledge.meta.generatedAt,
       focusProduct: {
         id: productProfile.id,
         displayName: productProfile.displayName,
@@ -640,6 +652,7 @@ export async function getWorkspaceIntelligence({ force = false, product = {}, co
     capabilityEvidence,
     marketFeed: localizeForProduct(marketFeed, productProfile),
     evidenceDatabase: localizeForProduct(evidenceDatabase, productProfile),
+    propelInsights,
     sections: {
       overview,
       content,
@@ -656,6 +669,71 @@ export async function getWorkspaceIntelligence({ force = false, product = {}, co
   };
 
   return payload;
+}
+
+/**
+ * Build the propelInsights section for the dashboard from a PropelKnowledgePayload.
+ * Surfaces the most actionable items from each category as a flat list of cards
+ * plus per-category sections the dashboard panel can render.
+ */
+function buildPropelInsightsSection(propelKnowledge, productProfile) {
+  const shortProductName = productProfile?.shortName || "the product";
+
+  function enrichItem(item) {
+    const tag = {
+      positioning:  "IBM Positioning",
+      competitive:  "Competitive Intel",
+      capabilities: "Product Capabilities",
+      integration:  "Integration & AI",
+      enablement:   "Sales Enablement",
+    }[item.category] || "IBM Knowledge";
+
+    return {
+      ...item,
+      tag,
+      sourceLabel: item.source === "seismic" ? "Seismic" : item.source === "ibm_docs" ? "IBM Docs" : item.source === "cloud_docs" ? "IBM Cloud Docs" : "IBM Marketing",
+      sourceBadge: item.source === "seismic" ? "SEISMIC" : item.source === "ibm_docs" ? "IBMDOCS" : item.source === "cloud_docs" ? "CLOUDOCS" : "IBM",
+      freshnessLabel: formatRelativeTime(item.publishedAt),
+      isNew: hoursSince(item.publishedAt) <= 72 * 30, // treat anything within 90 days as "new"
+    };
+  }
+
+  const highlights = [
+    ...(propelKnowledge.positioning?.items  || []).slice(0, 2),
+    ...(propelKnowledge.competitive?.items  || []).slice(0, 2),
+    ...(propelKnowledge.capabilities?.items || []).slice(0, 2),
+    ...(propelKnowledge.integration?.items  || []).slice(0, 1),
+    ...(propelKnowledge.enablement?.items   || []).slice(0, 1),
+  ].map(enrichItem);
+
+  return {
+    meta: propelKnowledge.meta,
+    highlights,
+    positioning:  { ...propelKnowledge.positioning,  items: (propelKnowledge.positioning?.items  || []).map(enrichItem) },
+    competitive:  { ...propelKnowledge.competitive,  items: (propelKnowledge.competitive?.items  || []).map(enrichItem) },
+    capabilities: { ...propelKnowledge.capabilities, items: (propelKnowledge.capabilities?.items || []).map(enrichItem) },
+    integration:  { ...propelKnowledge.integration,  items: (propelKnowledge.integration?.items  || []).map(enrichItem) },
+    enablement:   { ...propelKnowledge.enablement,   items: (propelKnowledge.enablement?.items   || []).map(enrichItem) },
+    suggestedAction: buildPropelSuggestedAction(propelKnowledge, shortProductName),
+  };
+}
+
+function buildPropelSuggestedAction(propelKnowledge, shortProductName) {
+  const compItem = propelKnowledge.competitive?.items?.[0];
+  if (compItem) {
+    return {
+      title: `Counter ${compItem.title.split("—")[0].trim() || "top competitor"} with IBM proof`,
+      summary: `Use the IBM Seismic competitive deck and positioning content to build a battle card or objection handler grounded in authoritative IBM evidence — not web-crawl signals alone.`,
+      sourceUrl: compItem.url,
+      sourceLabel: "IBM Seismic",
+    };
+  }
+  return {
+    title: `Publish a ${shortProductName} hybrid analytics POV`,
+    summary: `Leverage the IBM Docs and marketing content in the Knowledge panel to draft a thought leadership piece that connects ${shortProductName}'s lakehouse performance to watsonx.data AI readiness.`,
+    sourceUrl: "https://www.ibm.com/products/netezza",
+    sourceLabel: "IBM.com",
+  };
 }
 
 export async function handler(event = {}) {

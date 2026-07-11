@@ -2479,3 +2479,82 @@ button:disabled {
   .document-source-actions { align-items: flex-start; flex-wrap: wrap; }
   .source-actions { flex-wrap: wrap; }
 }
+
+/* ─── IBM Knowledge (Propel) Panel ─────────────────────────────────────────── */
+.knowledge-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.knowledge-card .card-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.knowledge-card .source-link {
+  font-size: 0.78rem;
+  color: var(--ibm-blue);
+  text-decoration: none;
+  font-weight: 500;
+  margin-top: 4px;
+}
+.knowledge-card .source-link:hover { text-decoration: underline; }
+.knowledge-section {
+  margin-top: 24px;
+}
+.knowledge-section .section-subheading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.knowledge-section .section-subheading h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink-20);
+  margin: 0;
+}
+.knowledge-alert {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  border-left: 3px solid var(--ibm-blue);
+  background: var(--blue-soft);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.knowledge-alert .alert-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.knowledge-alert .alert-body { flex: 1; }
+.knowledge-alert .alert-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+  color: var(--ink-20);
+}
+.knowledge-alert .alert-copy {
+  font-size: 0.85rem;
+  color: var(--ink-40);
+  margin: 0 0 8px 0;
+}
+.knowledge-alert .source-link {
+  font-size: 0.8rem;
+  color: var(--ibm-blue);
+  font-weight: 500;
+  text-decoration: none;
+}
+.knowledge-alert .source-link:hover { text-decoration: underline; }
+.section-heading-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.section-heading-meta .meta-note {
+  font-size: 0.78rem;
+  color: var(--ink-60);
+}

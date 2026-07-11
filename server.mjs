@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { getCommunitySignalsFeed } from "./community-signals.mjs";
 import { getMarketSignalsFeed } from "./market-signals.mjs";
 import { getWorkspaceIntelligence } from "./workspace-intelligence.mjs";
+import { getPropelKnowledge } from "./lib/propel-knowledge.mjs";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
 const port = Number(process.env.PORT || 3002);
@@ -52,6 +53,18 @@ createServer(async (request, response) => {
         keywords: url.searchParams.get("keywords") || "",
         platforms: url.searchParams.get("platforms") || "",
       }));
+      return;
+    }
+
+    if (pathname === "/api/propel-insights" || pathname === "/.netlify/functions/propel-insights") {
+      const force = url.searchParams.has("refresh");
+      const productName = url.searchParams.get("productName") || url.searchParams.get("product") || "IBM Netezza";
+      const competitorsParam = url.searchParams.get("competitors");
+      let competitors = [];
+      if (competitorsParam) {
+        try { competitors = JSON.parse(competitorsParam); } catch (e) { /* ignore */ }
+      }
+      sendJson(response, 200, await getPropelKnowledge({ force, productName, competitors }));
       return;
     }
 
