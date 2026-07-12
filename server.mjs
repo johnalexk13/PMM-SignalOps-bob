@@ -7,6 +7,8 @@ import { getCommunitySignalsFeed } from "./community-signals.mjs";
 import { getMarketSignalsFeed } from "./market-signals.mjs";
 import { getWorkspaceIntelligence } from "./workspace-intelligence.mjs";
 import { getPropelKnowledge } from "./lib/propel-knowledge.mjs";
+import aiContentSuggestions from "./api/ai-content-suggestions.mjs";
+import aiActionRecommendations from "./api/ai-action-recommendations.mjs";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
 const port = Number(process.env.PORT || 3002);
@@ -66,6 +68,14 @@ createServer(async (request, response) => {
       }
       sendJson(response, 200, await getPropelKnowledge({ force, productName, competitors }));
       return;
+    }
+
+    if (pathname === "/api/ai-content-suggestions") {
+      return aiContentSuggestions(request, response);
+    }
+
+    if (pathname === "/api/ai-action-recommendations") {
+      return aiActionRecommendations(request, response);
     }
 
     if (pathname === "/api/workspace-intelligence" || pathname === "/.netlify/functions/workspace-intelligence") {
