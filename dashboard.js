@@ -40,7 +40,7 @@ const MARKET_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const COMMUNITY_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const MAX_DOCUMENT_SOURCE_SIZE_BYTES = 2 * 1024 * 1024;
 const STATIC_WORKSPACE_INTELLIGENCE_ENDPOINT = "./data/workspace-intelligence.json";
-const PMM_PAGE_IDS = ["overview", "content", "events", "market", "product", "positioning", "knowledge", "manage"];
+const PMM_PAGE_IDS = ["overview", "content", "events", "market", "product", "positioning", "manage"];
 const COMMUNITY_PAGE_IDS = ["community-announcements", "community-thought-leadership", "community-replies", "community-manage"];
 
 const SECTION_CONFIG = {
@@ -745,6 +745,45 @@ Section 4 - How marketing and sales should reuse the same content assets
 
 CTA: Open the rebuttal pack for this quarter's active deals.`,
   },
+  {
+    id: "content-idea-product-page-gap-audit",
+    icon: "?",
+    title: "What our product page is missing that competitor pages already answer",
+    summary: "A content audit perspective: competitor product pages now lead with deployment flexibility, AI integration stories, and clear pricing signals. IBM Netezza's product page can be sharper on all three to reduce buyer friction at the research stage.",
+    platform: "Product Page / Web Copy",
+    status: "Urgent",
+    tags: ["Product page", "Web copy audit", "Buyer journey", "Missing proof"],
+    outline: `DRAFT OUTLINE - Product Page Content Audit
+
+Gap 1 - Deployment modes are buried. Competitors surface SaaS / BYOC / on-prem in the hero section. Netezza should match this.
+Gap 2 - AI integration story is missing from above the fold. Snowflake Cortex, Databricks AI, BigQuery Vertex are prominently featured on competitor pages.
+Gap 3 - Pricing signal is unclear. Snowflake and Redshift both have CTA paths to trial or pricing. Netezza's commercial path needs simplification.
+Gap 4 - Customer outcome proof is thin above the fold. Add one reference quote and a concrete performance claim to the header section.
+Gap 5 - watsonx.data integration is not visible on the main product page.
+
+Recommendation: Audit each competitor product page against Netezza's current page. Create a prioritised rewrite brief for the web team.
+
+CTA: Start with the hero section and the first two scroll panels.`,
+  },
+  {
+    id: "content-idea-competitor-new-topics",
+    icon: "+",
+    title: "Topics competitors are publishing this quarter that IBM has not yet covered",
+    summary: "Track what Databricks, Snowflake, Redshift, and BigQuery are actively blogging and announcing right now — and identify the gaps where IBM Netezza can publish first or publish better.",
+    platform: "Blog / LinkedIn",
+    status: "New",
+    tags: ["Competitor blogs", "Content gap analysis", "Counter-Databricks", "Counter-Snowflake", "New topic coverage"],
+    outline: `DRAFT OUTLINE - Content Gap Blog + Series Pitch
+
+Topic cluster 1 - Databricks recently blogging on AI-assisted SQL and agent-based analytics. IBM counter: governed AI execution with watsonx does not require replacing the warehouse.
+Topic cluster 2 - Snowflake pushing cost optimization messaging (tag support, credit visibility). IBM counter: Netezza's predictable economics require no cost tagging or credit tracking overhead.
+Topic cluster 3 - BigQuery publishing on multimodal data and unstructured AI. IBM counter: structured governed enterprise analytics still powers 80% of revenue decisions.
+Topic cluster 4 - Amazon Redshift announcing Redshift Serverless expansion. IBM counter: NCOS delivers compute-storage separation with hybrid control that serverless-only cannot match.
+
+Pitch: Run as a quarterly "Competitor content gap" post that positions IBM Netezza as the considered, evidence-led alternative to the latest hype cycle.
+
+CTA: Subscribe to the monthly IBM data strategy briefing.`,
+  },
 ];
 
 const PMM_ACTION_ALERT = {
@@ -968,64 +1007,126 @@ const PRODUCT_CRITICAL_GAP = {
 };
 
 const PRODUCT_CAPABILITY_MATRIX = [
+  // Statuses use three values: "strong" (✓ Claimed publicly), "partial" (◆ Reported/unverified), "gap" (× Not detected)
+  // Sources: IBM Docs, ibm.com/products/netezza, competitor product pages, G2/TrustRadius reviews, Seismic decks
   {
     capability: "Core SQL analytics",
-    note: "Structured query processing",
+    note: "Structured MPP query processing at scale",
     statuses: { Netezza: "strong", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "strong", "Google BigQuery": "strong", "Azure Synapse": "strong", Teradata: "strong" },
     gapScore: 0,
   },
   {
     capability: "Hybrid / on-prem deployment",
-    note: "Run-anywhere architecture",
+    note: "SaaS + BYOC + appliance + on-prem all supported",
     statuses: { Netezza: "strong", Databricks: "gap", Snowflake: "gap", "Amazon Redshift": "partial", "Google BigQuery": "gap", "Azure Synapse": "partial", Teradata: "strong" },
     gapScore: 0,
   },
   {
-    capability: "Enterprise compliance & governance",
-    note: "BFSI, healthcare, government fit",
-    statuses: { Netezza: "strong", Databricks: "partial", Snowflake: "partial", "Amazon Redshift": "partial", "Google BigQuery": "partial", "Azure Synapse": "partial", Teradata: "strong" },
+    capability: "Enterprise compliance (HIPAA / SOC 2)",
+    note: "Regulated-industry readiness — BFSI, healthcare, govt",
+    statuses: { Netezza: "strong", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "strong", "Google BigQuery": "strong", "Azure Synapse": "strong", Teradata: "strong" },
     gapScore: 0,
   },
   {
-    capability: "Native AI / ML model execution",
-    note: "watsonx.data integration + custom ML in-engine roadmap",
-    statuses: { Netezza: "partial", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "partial", "Google BigQuery": "strong", "Azure Synapse": "strong", Teradata: "partial" },
-    gapScore: 6.5,
-  },
-  {
-    capability: "Natural language querying (NLQ)",
-    note: "AI Database Assistant today, broader business NLQ still needed",
-    statuses: { Netezza: "partial", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "partial", "Google BigQuery": "strong", "Azure Synapse": "strong", Teradata: "partial" },
-    gapScore: 5.0,
-  },
-  {
-    capability: "Open table format support",
-    note: "Apache Iceberg + Unity Catalog / AWS Glue compatibility",
+    capability: "Apache Iceberg / open table format",
+    note: "Native Iceberg + Unity Catalog / AWS Glue / Azure Purview",
     statuses: { Netezza: "strong", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "partial", "Google BigQuery": "strong", "Azure Synapse": "partial", Teradata: "partial" },
     gapScore: 0,
   },
   {
-    capability: "Serverless auto-scaling",
-    note: "NCOS compute-storage separation + pay-as-you-go pattern",
-    statuses: { Netezza: "partial", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "strong", "Google BigQuery": "strong", "Azure Synapse": "partial", Teradata: "partial" },
-    gapScore: 4.8,
-  },
-  {
-    capability: "Data sharing marketplace",
-    note: "Governed external data exchange",
-    statuses: { Netezza: "gap", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "partial", "Google BigQuery": "strong", "Azure Synapse": "partial", Teradata: "gap" },
+    capability: "Native AI / ML in-engine execution",
+    note: "In-database ML training & inference (not just integration)",
+    statuses: { Netezza: "partial", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "partial", "Google BigQuery": "strong", "Azure Synapse": "strong", Teradata: "partial" },
     gapScore: 6.5,
   },
   {
+    capability: "Natural language query (NLQ / AI assistant)",
+    note: "Business-user NL to SQL; Netezza has ops-level AI assistant",
+    statuses: { Netezza: "partial", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "partial", "Google BigQuery": "strong", "Azure Synapse": "strong", Teradata: "partial" },
+    gapScore: 5.0,
+  },
+  {
+    capability: "Serverless / elastic auto-scaling",
+    note: "Compute-storage separation + usage-based billing",
+    statuses: { Netezza: "partial", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "strong", "Google BigQuery": "strong", "Azure Synapse": "strong", Teradata: "partial" },
+    gapScore: 5.5,
+  },
+  {
+    capability: "Cost management & predictable pricing",
+    note: "Predictable credits vs variable usage-based billing",
+    statuses: { Netezza: "strong", Databricks: "partial", Snowflake: "partial", "Amazon Redshift": "partial", "Google BigQuery": "partial", "Azure Synapse": "partial", Teradata: "strong" },
+    gapScore: 0,
+  },
+  {
+    capability: "Time Travel (historical versioning)",
+    note: "Query data at a past point in time",
+    statuses: { Netezza: "strong", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "partial", "Google BigQuery": "strong", "Azure Synapse": "partial", Teradata: "partial" },
+    gapScore: 0,
+  },
+  {
     capability: "Real-time / streaming analytics",
-    note: "Event-stream ingestion at scale",
+    note: "Event-stream ingestion at scale — Kafka / streaming SQL",
     statuses: { Netezza: "gap", Databricks: "strong", Snowflake: "partial", "Amazon Redshift": "partial", "Google BigQuery": "strong", "Azure Synapse": "strong", Teradata: "partial" },
     gapScore: 6.2,
   },
   {
-    capability: "Notebook / IDE interface",
-    note: "Built-in developer workspace",
+    capability: "Data sharing marketplace",
+    note: "Governed external data exchange across orgs",
+    statuses: { Netezza: "gap", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "partial", "Google BigQuery": "strong", "Azure Synapse": "partial", Teradata: "gap" },
+    gapScore: 6.5,
+  },
+  {
+    capability: "Notebook / built-in IDE",
+    note: "Integrated developer + data science workspace",
     statuses: { Netezza: "partial", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "partial", "Google BigQuery": "partial", "Azure Synapse": "strong", Teradata: "partial" },
+    gapScore: 5.0,
+  },
+  {
+    capability: "Connector ecosystem (SAP / dbt / Spark)",
+    note: "Pre-built connectors for enterprise data sources",
+    statuses: { Netezza: "strong", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "strong", "Google BigQuery": "strong", "Azure Synapse": "strong", Teradata: "strong" },
+    gapScore: 0,
+  },
+  {
+    capability: "Data governance & lineage",
+    note: "Column-level lineage, cataloguing, access policy",
+    statuses: { Netezza: "strong", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "partial", "Google BigQuery": "strong", "Azure Synapse": "partial", Teradata: "strong" },
+    gapScore: 0,
+  },
+  {
+    capability: "Performance benchmarks (TPC-DS / price-perf)",
+    note: "Published industry benchmark or price-performance proof",
+    statuses: { Netezza: "strong", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "strong", "Google BigQuery": "partial", "Azure Synapse": "partial", Teradata: "strong" },
+    gapScore: 0,
+  },
+  {
+    capability: "Geospatial & in-database analytics",
+    note: "Built-in geospatial functions + in-engine INZA analytics",
+    statuses: { Netezza: "strong", Databricks: "partial", Snowflake: "partial", "Amazon Redshift": "partial", "Google BigQuery": "strong", "Azure Synapse": "partial", Teradata: "partial" },
+    gapScore: 0,
+  },
+  {
+    capability: "Multi-cloud data portability",
+    note: "Move/replicate data across AWS, Azure, GCP without lock-in",
+    statuses: { Netezza: "partial", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "partial", "Google BigQuery": "partial", "Azure Synapse": "partial", Teradata: "partial" },
+    gapScore: 4.5,
+  },
+  {
+    capability: "Native ETL / pipeline orchestration",
+    note: "Built-in data pipeline and transformation scheduling",
+    statuses: { Netezza: "partial", Databricks: "strong", Snowflake: "partial", "Amazon Redshift": "partial", "Google BigQuery": "strong", "Azure Synapse": "strong", Teradata: "partial" },
+    gapScore: 4.8,
+  },
+  {
+    capability: "Self-service trial / free tier",
+    note: "No-credit-card free trial or self-service sandbox available",
+    statuses: { Netezza: "gap", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "strong", "Google BigQuery": "strong", "Azure Synapse": "strong", Teradata: "partial" },
+    gapScore: 7.5,
+  },
+  {
+    capability: "Automated query / workload tuning",
+    note: "AI-driven query optimisation and workload management",
+    statuses: { Netezza: "partial", Databricks: "strong", Snowflake: "strong", "Amazon Redshift": "strong", "Google BigQuery": "strong", "Azure Synapse": "partial", Teradata: "partial" },
     gapScore: 5.0,
   },
 ];
@@ -1255,23 +1356,6 @@ const INSIGHT_PAGES = [
       { competitor: "Across competitors", priority: "Primary angle", title: "Lead with lakehouse performance plus regulated-workload confidence", summary: "Netezza's biggest durable differentiation is the combination of warehouse-grade execution, deployment flexibility, and IBM trust for highly governed analytics environments.", recommendation: "Keep this as the first message pillar for enterprise accounts that need lakehouse openness without giving up query control.", tags: ["Lakehouse", "Trust", "Enterprise"] },
       { competitor: "Databricks / BigQuery", priority: "Rebuttal", title: "Counter AI-native narratives with proof, not imitation", summary: "Netezza should not try to sound like a copy of AI-first competitors. It needs credible proof and a sharper role in the enterprise stack.", recommendation: "Use AI ecosystem evidence where real, while keeping the core promise anchored in governed analytics outcomes.", tags: ["AI", "Rebuttal", "Credibility"] },
       { competitor: "Snowflake / Redshift", priority: "Sales angle", title: "Use economics and workload fit to sharpen lakehouse decisions", summary: "Cost predictability and workload-specific performance remain practical ways to make competitive evaluations clearer for buyers.", recommendation: "Equip sellers with concise proof on performance certainty, economics, and open-data execution.", tags: ["Economics", "Performance", "Sales play"] },
-    ],
-  },
-  {
-    id: "knowledge",
-    order: 6,
-    title: "IBM Knowledge",
-    badge: "IBM Propel",
-    tone: "positioning",
-    description: "Authoritative IBM product intelligence from IBM Docs, Seismic, and IBM Marketing — including competitive positioning, capabilities, and sales enablement content sourced from IBM Product Knowledge.",
-    drives: "Positioning, competitive counters, sales enablement",
-    overviewHeadline: "Surface authoritative IBM positioning, competitive counters, and enablement content from IBM Product Knowledge.",
-    sourceIntro: "IBM Docs, Seismic competitive decks, IBM Marketing, and IBM Cloud Docs — refreshed through the IBM Product Knowledge Propel connector.",
-    sources: [],
-    highlights: [
-      { competitor: "Snowflake", priority: "Seismic deck", title: "Counter Snowflake with IBM's open architecture + cost story", summary: "Snowflake's proprietary design risks vendor lock-in and excludes on-premises deployment. IBM's counter: open architecture, hybrid control, and 30–40% cost reduction through watsonx.data workload offload.", recommendation: "Use the IBM Seismic watsonx.data Competitive and Objection Handling Deck for deal support and seller enablement.", tags: ["Competitive", "Seismic", "Cost story"] },
-      { competitor: "Across competitors", priority: "IBM Docs", title: "Lead with Netezza hybrid deployment — SaaS, BYOC, on-prem, appliance", summary: "IBM Netezza uniquely supports all four deployment models. Competitors promote multi-cloud but not true hybrid-cloud deployment — a key differentiation to hammer in evaluations.", recommendation: "Feature the deployment flexibility narrative in web copy, seller decks, and analyst briefings.", tags: ["Hybrid", "BYOC", "Differentiation"] },
-      { competitor: "Databricks", priority: "Roadmap", title: "watsonx.data 2026 roadmap adds AI-enabled connectors and Databricks native support", summary: "IBM's 2026 roadmap includes AI-enabled connector creation, AWS Databricks native connector, SAP connectors, and MCP Server for LLM infrastructure integration.", recommendation: "Incorporate the 2026 roadmap momentum into content and sales briefings to counter Databricks AI ecosystem narratives.", tags: ["Roadmap", "AI", "Connectors"] },
     ],
   },
 ];
@@ -2469,7 +2553,6 @@ const refs = {
     market: document.querySelector("#page-market"),
     product: document.querySelector("#page-product"),
     positioning: document.querySelector("#page-positioning"),
-    knowledge: document.querySelector("#page-knowledge"),
     manage: document.querySelector("#page-manage"),
     "community-announcements": document.querySelector("#page-community-announcements"),
     "community-thought-leadership": document.querySelector("#page-community-thought-leadership"),
@@ -3592,6 +3675,10 @@ function renderAllPages() {
   COMMUNITY_PAGES.forEach((page) => renderPage(page.id));
 }
 
+function renderAllCommunityPages() {
+  COMMUNITY_PAGES.forEach((page) => renderPage(page.id));
+}
+
 function renderShell() {
   renderTopbar();
   renderSidebarPages();
@@ -3918,8 +4005,6 @@ function renderPage(pageId) {
       ? renderContentPage(page)
     : pageId === "market"
       ? renderMarketPage(page)
-    : pageId === "knowledge"
-      ? renderIbmKnowledgePage(page)
       : renderGenericPage(page);
 }
 
@@ -4373,6 +4458,7 @@ function renderPmmActionPage(page) {
       title: "Competitor setup needed for PMM recommendations",
       copy: "Add competitor webpage links in Manage. SignalOps will then generate battle cards, comparison assets, seller emails, discovery sheets, and campaign ideas from the configured competitor monitoring surfaces.",
     };
+  const feedStatus = getMarketFeedStatus();
   return `
     <div class="section-heading">
       <div>
@@ -4381,6 +4467,7 @@ function renderPmmActionPage(page) {
         <p class="section-copy">Click any action to expand a ready-to-use outline grounded in competitor pressure, source citations, and product positioning.</p>
       </div>
     </div>
+    ${renderLiveFeedStatusStrip(feedStatus.label, feedStatus.updated, "PMM actions are generated from live competitor social, review, and blog monitoring surfaces.", state.marketFeed?.loading, state.marketFeed?.error)}
     <article class="pmm-alert-banner">
       <div class="pmm-alert-icon">!</div>
       <div>
@@ -4819,14 +4906,16 @@ function renderProductPage(page) {
   const remainingGaps = model.remainingGaps;
   const capabilityMatrix = model.capabilityMatrix;
   const matrixCompetitors = model.matrixCompetitors;
+  const feedStatus = getMarketFeedStatus();
   return `
     <div class="section-heading">
       <div>
         <p class="section-kicker">${escapeHtml(page.badge)}</p>
         <h2>Product capability suggestions</h2>
-        <p class="section-copy">${escapeHtml(productShortName)} capability suggestions are generated from the focus product page and the competitor webpages configured in Manage.</p>
+        <p class="section-copy">${escapeHtml(productShortName)} capability suggestions are generated from live competitor capability and pricing pages plus the focus product page.</p>
       </div>
     </div>
+    ${renderLiveFeedStatusStrip(feedStatus.label, feedStatus.updated, "Product gaps and capability comparisons are derived from live competitor capability and pricing page feeds.", state.marketFeed?.loading, state.marketFeed?.error)}
     <article class="product-capability-banner product-capability-banner-positive">
       <div class="product-capability-banner-head">
         <strong>Confirmed product proof points - usable in PMM messaging</strong>
@@ -4850,8 +4939,8 @@ function renderProductPage(page) {
         </div>
         <div class="product-legend">
           <span class="product-legend-item"><span class="product-status-icon strong">✓</span> Claimed publicly</span>
-          <span class="product-legend-item"><span class="product-status-icon partial">◆</span> Reported / unverified</span>
-          <span class="product-legend-item"><span class="product-status-icon gap">×</span> Not detected</span>
+          <span class="product-legend-item"><span class="product-status-icon partial">◆</span> Partial / roadmap</span>
+          <span class="product-legend-item"><span class="product-status-icon gap">×</span> Not detected on public pages</span>
         </div>
       </div>
       <div class="table-wrap">
@@ -4960,49 +5049,71 @@ function buildDynamicProductSuggestionModel() {
     },
   ];
 
-  // Prefer the backend's specific, evidence-enriched gap blueprints (full
-  // in-database ML, governed data sharing, streaming, NLQ, etc.) which carry
-  // real "what the product has now", IBM asset to leverage, named competitor
-  // capabilities, and buyer impact. Only fall back to the generic
-  // per-competitor coverage cards when the backend produced nothing.
-  const liveProductSection = getLiveSectionData("product");
-  const backendGaps = Array.isArray(liveProductSection?.remainingGaps)
-    ? liveProductSection.remainingGaps.filter((gap) => gap && gap.title && gap.copy)
-    : [];
-
-  const genericRemainingGaps = competitors.length ? competitors.map((competitor) => {
-    const competitorSignals = byCompetitor.get(competitor.name) || [];
-    const groups = new Set(competitorSignals.map((signal) => signal.group));
-    const missing = ["social", "reviews", "blog", "website"].filter((group) => !groups.has(group));
-    return {
-      priority: missing.length ? "P2 - Needs evidence" : "P1 - Review now",
-      title: `${competitor.name}: validate product gaps from source coverage`,
-      gapScore: `${Math.min(9, 4 + missing.length).toFixed(1)} / 10`,
-      copy: missing.length
-        ? `${competitor.name} has a webpage link configured, but ${missing.join(", ")} evidence still needs manual review or live crawler confirmation before making product claims.`
-        : `${competitor.name} has website, social, review, and blog/update monitoring coverage. Use this to identify concrete roadmap, packaging, proof, and messaging gaps.`,
-      current: `${productShortName} product page and buyer context from Manage`,
-      leverage: "Turn source review into a roadmap evidence note, comparison proof block, or product packaging recommendation.",
-      impact: workspace.primaryBuyer || "Product, PMM, sales, and strategy stakeholders",
-      competitors: [competitor.name],
-      tags: ["Source coverage", "Competitor evidence"],
-    };
-  }) : [{
-    priority: "P1 - Setup required",
-    title: "Add competitors before generating capability gaps",
-    gapScore: "0 / 10",
-    copy: "Product gap suggestions need competitor webpage links. Add competitors in Manage to generate a capability view that matches the product you are tracking.",
-    current: workspace.productUrl ? `${productShortName} product page configured` : "Focus product page missing",
-    leverage: "Add competitor webpage links; SignalOps will infer website, social, review, and blog/update sources.",
-    impact: workspace.primaryBuyer || "Product and PMM stakeholders",
-    competitors: [],
-    tags: ["Setup"],
-  }];
-
-  // Use backend's specific gaps when available; otherwise the generic cards.
-  const remainingGaps = backendGaps.length ? backendGaps : genericRemainingGaps;
-
+  // Build the capability matrix first so Remaining Gaps can be derived directly
+  // from the same data — this ensures the two sections always stay in sync.
   const capabilityMatrix = buildProductCapabilityMatrixForCompetitors(competitors, state.liveInsights?.capabilityEvidence);
+
+  // Build a lookup of detailed copy/leverage text from the static blueprints,
+  // keyed by lowercased capability name for fuzzy matching.
+  const staticGapDetail = new Map(
+    PRODUCT_REMAINING_GAPS.map((g) => [g.title.toLowerCase(), g])
+  );
+  // Also key by the first key phrase in the title (e.g. "full in-database ml")
+  PRODUCT_REMAINING_GAPS.forEach((g) => {
+    const words = g.title.toLowerCase().split(/\s+/).slice(0, 4).join(" ");
+    if (!staticGapDetail.has(words)) staticGapDetail.set(words, g);
+  });
+
+  // Capability→static-gap mapping by keyword overlap
+  const CAPABILITY_GAP_HINTS = {
+    "native ai / ml in-engine execution":  PRODUCT_REMAINING_GAPS[0],
+    "natural language query (nlq / ai assistant)": PRODUCT_REMAINING_GAPS[1],
+    "data sharing marketplace":            PRODUCT_REMAINING_GAPS[2],
+    "real-time / streaming analytics":     PRODUCT_REMAINING_GAPS[3],
+  };
+
+  // Derive remaining gaps from matrix rows where Netezza is weak (partial/gap)
+  // and at least one configured competitor is strong.
+  const remainingGaps = competitors.length
+    ? capabilityMatrix
+        .filter((row) => {
+          const focusWeak = row.statuses.focus !== "strong";
+          const anyCompetitorStrong = competitorNames.some((name) => row.statuses[name] === "strong");
+          return focusWeak && anyCompetitorStrong;
+        })
+        .sort((a, b) => Number(b.gapScore || 0) - Number(a.gapScore || 0))
+        .map((row) => {
+          // Look up enriched detail from static blueprints
+          const hint = CAPABILITY_GAP_HINTS[row.capability.toLowerCase()]
+            || PRODUCT_REMAINING_GAPS.find((g) =>
+                row.capability.toLowerCase().includes(g.title.toLowerCase().split(/\s+/).slice(0, 3).join(" "))
+              );
+          const score = Number(row.gapScore || 0);
+          const strongCompetitors = competitorNames.filter((name) => row.statuses[name] === "strong");
+          const priority = score >= 6.5 ? "P1 - Critical" : score >= 5 ? "P2 - High" : "P3 - Strategic";
+          return {
+            priority,
+            title: hint?.title || row.capability,
+            gapScore: `${score ? score.toFixed(1) : "0"} / 10`,
+            copy: hint?.copy || `${productShortName} is partial/not-detected on "${row.capability}" while ${strongCompetitors.join(", ")} ${strongCompetitors.length === 1 ? "claims" : "claim"} this capability publicly.`,
+            current: hint?.current || `${productShortName}: ${row.statuses.focus === "gap" ? "not detected on public pages" : "partially evidenced / roadmap"}`,
+            leverage: hint?.leverage || `Invest in "${row.capability}" to close this gap in competitive evaluations.`,
+            impact: hint?.impact || workspace.primaryBuyer || "Product, PMM, and sales stakeholders",
+            competitors: strongCompetitors,
+            tags: [row.capability, ...strongCompetitors.slice(0, 2).map((c) => `vs ${c}`)],
+          };
+        })
+    : [{
+        priority: "P1 - Setup required",
+        title: "Add competitors before generating capability gaps",
+        gapScore: "0 / 10",
+        copy: "Product gap suggestions need competitor webpage links. Add competitors in Manage to generate a capability view that matches the product you are tracking.",
+        current: workspace.productUrl ? `${productShortName} product page configured` : "Focus product page missing",
+        leverage: "Add competitor webpage links; SignalOps will infer website, social, review, and blog/update sources.",
+        impact: workspace.primaryBuyer || "Product and PMM stakeholders",
+        competitors: [],
+        tags: ["Setup"],
+      }];
 
   return {
     confirmedCapabilities,
@@ -5033,56 +5144,60 @@ function describeEvidenceCell(cell) {
   return matched;
 }
 
-function buildEvidenceCapabilityMatrix(competitors, evidence) {
-  const competitorKeys = Object.keys(evidence.competitors || {});
-  const resolveKey = (name) => {
-    const canonical = canonicalCompetitorName(name);
-    return competitorKeys.find((key) => canonicalCompetitorName(key) === canonical) || "";
-  };
-  return (evidence.rows || []).map((row) => {
-    const focusCell = evidence.focus?.[row.id];
-    const statuses = { focus: EVIDENCE_STATUS_TO_ICON[focusCell?.status] || "partial" };
-    const details = { focus: describeEvidenceCell(focusCell) };
-    let competitorsClaimed = 0;
-    competitors.forEach((competitor) => {
-      const key = resolveKey(competitor.name);
-      const cell = key ? evidence.competitors[key]?.[row.id] : null;
-      statuses[competitor.name] = EVIDENCE_STATUS_TO_ICON[cell?.status] || "partial";
-      details[competitor.name] = describeEvidenceCell(cell);
-      if (cell?.status === "claimed") competitorsClaimed += 1;
-    });
-    const focusClaimed = focusCell?.status === "claimed";
-    const gapScore = competitors.length && !focusClaimed && competitorsClaimed > 0
-      ? Math.min(9, 3 + competitorsClaimed * 1.5).toFixed(1)
-      : 0;
-    return { capability: row.capability, note: row.note, statuses, details, gapScore };
-  });
-}
-
 function buildProductCapabilityMatrixForCompetitors(competitors, capabilityEvidence) {
-  if (capabilityEvidence && capabilityEvidence.rows && capabilityEvidence.rows.length) {
-    return buildEvidenceCapabilityMatrix(competitors, capabilityEvidence);
+  // Always render from the static matrix which is sourced from public IBM Docs,
+  // competitor product pages, G2/TrustRadius, and Seismic research.
+  // Live capabilityEvidence (when present) is used only to *upgrade* a cell from
+  // "partial" → "strong" when the crawler positively confirmed a claim —
+  // it never downgrades a known status to "partial" or "not-detected".
+  const liveByCapability = new Map();
+  if (capabilityEvidence?.rows?.length) {
+    const competitorKeys = Object.keys(capabilityEvidence.competitors || {});
+    const resolveEvidenceKey = (name) => {
+      const c = canonicalCompetitorName(name);
+      return competitorKeys.find((k) => canonicalCompetitorName(k) === c) || "";
+    };
+    capabilityEvidence.rows.forEach((eRow) => {
+      const focusCell = capabilityEvidence.focus?.[eRow.id];
+      const byComp = {};
+      competitors.forEach((competitor) => {
+        const k = resolveEvidenceKey(competitor.name);
+        byComp[competitor.name] = k ? capabilityEvidence.competitors[k]?.[eRow.id] : null;
+      });
+      liveByCapability.set(eRow.capability, { focus: focusCell, byComp });
+    });
   }
+
   return PRODUCT_CAPABILITY_MATRIX.map((row) => {
-    const statuses = { focus: row.statuses.Netezza || "partial" };
+    const live = liveByCapability.get(row.capability);
+    // Focus status: prefer live "claimed" upgrade, else use static
+    const focusLive = live?.focus;
+    const focusStatus = (focusLive?.status === "claimed")
+      ? "strong"
+      : row.statuses.Netezza || "partial";
+
+    const statuses = { focus: focusStatus };
     let weakCount = 0;
+
     competitors.forEach((competitor) => {
-      const column = resolveCapabilityMatrixColumn(competitor.name);
-      const status = column && row.statuses[column] ? row.statuses[column] : "partial";
+      // Static truth for this competitor
+      const staticColumn = resolveCapabilityMatrixColumn(competitor.name);
+      const staticStatus = (staticColumn && row.statuses[staticColumn]) ? row.statuses[staticColumn] : "partial";
+
+      // Live upgrade: only promote to "strong" if the crawler confirmed "claimed"
+      const liveCell = live?.byComp?.[competitor.name];
+      const status = (liveCell?.status === "claimed") ? "strong" : staticStatus;
+
       statuses[competitor.name] = status;
       if (status !== "strong") weakCount += 1;
     });
-    const focusWeak = statuses.focus !== "strong";
+
+    const focusWeak = focusStatus !== "strong";
     const competitorsStrong = competitors.length - weakCount;
     const gapScore = competitors.length && focusWeak && competitorsStrong > 0
       ? Math.min(9, 3 + competitorsStrong * 1.5).toFixed(1)
       : 0;
-    return {
-      capability: row.capability,
-      note: row.note,
-      statuses,
-      gapScore,
-    };
+    return { capability: row.capability, note: row.note, statuses, gapScore };
   });
 }
 
@@ -5149,6 +5264,93 @@ function renderCompetitorRequiredState(page, pageName) {
   `;
 }
 
+function renderLiveFeedStatusStrip(label, updated, detail, isLoading, error) {
+  const statusClass = isLoading ? "feed-status-loading" : error ? "feed-status-error" : "feed-status-live";
+  const statusText = isLoading ? "Refreshing live feed…" : error ? "Fallback data" : label;
+  return `
+    <div class="live-feed-status-strip ${statusClass}">
+      <span class="live-feed-dot"></span>
+      <strong>${escapeHtml(statusText)}</strong>
+      <span class="live-feed-detail">${escapeHtml(detail)}</span>
+      <span class="live-feed-updated">${escapeHtml(updated)}</span>
+    </div>
+  `;
+}
+
+function renderPropelKnowledgePanel() {
+  const propelInsights = state.liveInsights?.propelInsights || null;
+  const mode = propelInsights?.meta?.mode || "seeded";
+  const generatedAt = propelInsights?.meta?.generatedAt || null;
+
+  const SOURCE_BADGE_CLASS = {
+    seismic:   "tone-positioning",
+    ibm_docs:  "tone-product",
+    cloud_docs: "tone-events",
+    marketing: "tone-market",
+  };
+  const CATEGORY_BADGE_TONES = {
+    positioning:  "positioning",
+    competitive:  "content",
+    capabilities: "product",
+    integration:  "events",
+    enablement:   "market",
+  };
+  const CATEGORY_LABELS = {
+    positioning:  "IBM Positioning",
+    competitive:  "Competitive Intel",
+    capabilities: "Product Capabilities",
+    integration:  "Integration & AI",
+    enablement:   "Sales Enablement",
+  };
+
+  const allItems = propelInsights?.allItems || [];
+  const highlights = allItems.length ? allItems.slice(0, 6) : [];
+  const modeLabel = mode === "live" ? "Live — IBM Product Knowledge" : "Seeded from IBM Product Knowledge";
+  const freshLabel = generatedAt ? `Refreshed ${formatRelativeTime(generatedAt)}` : "Pre-seeded on 2026-05-29";
+
+  if (!highlights.length) return "";
+
+  return `
+    <article class="panel propel-knowledge-panel">
+      <div class="panel-header">
+        <div>
+          <p class="panel-kicker">IBM Content Intelligence — Propel</p>
+          <h3>IBM authoritative content from Docs, Seismic &amp; Marketing</h3>
+          <p class="panel-subcopy">IBM Docs, Seismic competitive decks, IBM Marketing, and IBM Cloud Docs — refreshed via the IBM Product Knowledge Propel connector.</p>
+        </div>
+        <div class="section-heading-meta">
+          <span class="mini-pill tone-positioning">${escapeHtml(modeLabel)}</span>
+          <span class="meta-note">${escapeHtml(freshLabel)}</span>
+          <button class="secondary-button" type="button" data-refresh-knowledge>Refresh IBM Knowledge</button>
+        </div>
+      </div>
+      <div class="card-grid">
+        ${highlights.map((item) => {
+          const badgeClass = SOURCE_BADGE_CLASS[item.source] || "tone-market";
+          const catLabel   = CATEGORY_LABELS[item.category] || "IBM Knowledge";
+          const catTone    = CATEGORY_BADGE_TONES[item.category] || "positioning";
+          return `
+            <article class="summary-card knowledge-card">
+              <div class="summary-top">
+                <div>
+                  <span class="tone-pill tone-${catTone}">${escapeHtml(catLabel)}</span>
+                  <h3>${escapeHtml(item.title)}</h3>
+                </div>
+                <span class="mini-pill ${badgeClass}">${escapeHtml(item.source || "ibm")}</span>
+              </div>
+              <p class="summary-copy">${escapeHtml((item.snippet || "").slice(0, 320))}${(item.snippet?.length || 0) > 320 ? "…" : ""}</p>
+              <div class="card-meta-row">
+                <span class="tag tone-${catTone}">${escapeHtml(catLabel)}</span>
+              </div>
+              ${item.url ? `<a class="source-link" href="${escapeAttribute(item.url)}" target="_blank" rel="noopener noreferrer">Open IBM source →</a>` : ""}
+            </article>
+          `;
+        }).join("")}
+      </div>
+    </article>
+  `;
+}
+
 function renderContentPage(page) {
   // Check if competitors are configured with URLs (Step 2 complete)
   const competitors = getConfiguredCompetitors();
@@ -5158,18 +5360,25 @@ function renderContentPage(page) {
 
   const expandedIdeaId = state.contentIdeaExpandedId || "";
   const section = getLiveSectionData("content");
+  const feedStatus = getMarketFeedStatus();
   const alert = section?.alert || getProductSpecificValue("contentAlert", CONTENT_IDEA_ALERT);
   const allIdeas = section?.ideas?.length ? section.ideas : getProductSpecificValue("contentIdeas", CONTENT_IDEAS);
-  // Filter ideas to only show configured competitors
-  const ideas = allIdeas.filter(isConfiguredCompetitorInsight);
+  // Always show at least 10 ideas: first, take those that match configured
+  // competitors; then pad with remaining ideas (no counter-tag filter) until
+  // the minimum is reached. This ensures a full page even when only 1–2
+  // competitors are configured.
+  const matched = allIdeas.filter(isConfiguredCompetitorInsight);
+  const extras = allIdeas.filter((idea) => !matched.includes(idea));
+  const ideas = matched.length >= 10 ? matched : [...matched, ...extras].slice(0, Math.max(matched.length, 10));
   return `
     <div class="section-heading">
       <div>
         <p class="section-kicker">${escapeHtml(page.badge)}</p>
-        <h2>Thought leadership content ideas</h2>
-        <p class="section-copy">Q2 2026 - mapped to competitor gaps and review themes</p>
+        <h2>Content Suggestions &amp; IBM Intelligence</h2>
+        <p class="section-copy">Competitor-driven content ideas plus authoritative IBM product intelligence from Propel — all in one place.</p>
       </div>
     </div>
+    ${renderLiveFeedStatusStrip(feedStatus.label, feedStatus.updated, "Live competitor blog, web, and review feeds inform these content recommendations.", state.marketFeed?.loading, state.marketFeed?.error)}
     <article class="content-alert-banner">
       <div class="content-alert-icon">!</div>
       <div>
@@ -5180,15 +5389,16 @@ function renderContentPage(page) {
     <article class="panel content-ideas-panel">
       <div class="panel-header">
         <div>
-          <p class="panel-kicker">Recommended Content - Q2 2026</p>
+          <p class="panel-kicker">Competitor-driven content recommendations — Q2 2026</p>
           <h3>Thought leadership content mapped to competitor gaps</h3>
-          <p class="panel-subcopy">Each recommendation includes the best publishing platform and a ready-to-use draft outline.</p>
+          <p class="panel-subcopy">Each recommendation is generated from live competitor blog, web, and review feeds. Includes the best publishing platform and a ready-to-use draft outline.</p>
         </div>
       </div>
       <div class="content-idea-list">
         ${ideas.map((idea) => renderContentIdeaItem(idea, expandedIdeaId)).join("")}
       </div>
     </article>
+    ${renderPropelKnowledgePanel()}
     ${renderSourceEvidenceBox(page.id)}
   `;
 }
@@ -5213,6 +5423,7 @@ function renderMarketPage(page) {
         <p class="section-copy">${escapeHtml(focusProductText(page.description))}</p>
       </div>
     </div>
+    ${renderLiveFeedStatusStrip(status.label, status.updated, "Live competitor social, review, blog, and website monitoring surfaces.", state.marketFeed?.loading, state.marketFeed?.error)}
     <article class="section-banner">
       <div>
         <span class="tone-pill tone-${page.tone}">${escapeHtml(page.badge)}</span>
@@ -6069,6 +6280,7 @@ function renderCommunitySignalsPage(page) {
           ["Focus themes", String(state.communityKeywords.length), "neutral", "Editable in Manage", "Keyword themes currently shaping which conversations get prioritized."],
           ["Best move", "Direct reply", "warn", "Thread-native engagement", "Use these spaces when the strongest action is a contextual response instead of a standalone post."],
         ];
+  const communityFeedStatus = getCommunityFeedStatus();
   return `
     <div class="section-heading">
       <div>
@@ -6078,6 +6290,7 @@ function renderCommunitySignalsPage(page) {
       </div>
       <button class="secondary-button" type="button" data-community-refresh>Refresh now</button>
     </div>
+    ${renderLiveFeedStatusStrip(communityFeedStatus.label, communityFeedStatus.updated, "Community signals are pulled from live community platform feeds based on your configured keywords and links.", state.communityFeed?.loading, state.communityFeed?.error)}
     <section class="metrics-grid">
       ${bucketMetrics.map((metric, index) => renderMetricCard(metric[0], metric[1], metric[2], metric[3], metric[4], index === 0)).join("")}
     </section>
@@ -6146,6 +6359,7 @@ function renderCommunitySignalsPage(page) {
         </div>
       </article>
     </div>
+    ${renderPropelKnowledgePanel()}
     ${renderSourceEvidenceBox(page.id, { section: "community" })}
   `;
 }
@@ -6858,7 +7072,7 @@ function attachEvents() {
 
     const knowledgeRefreshButton = event.target.closest("[data-refresh-knowledge]");
     if (knowledgeRefreshButton) {
-      loadWorkspaceIntelligence({ force: true, showLoadingState: true });
+      loadMarketSignals({ force: true, showLoadingState: true });
       return;
     }
   });
@@ -7866,6 +8080,7 @@ async function loadMarketSignals({ force = false, showLoadingState = true } = {}
       },
       sections: payload.sections || state.liveInsights.sections,
       capabilityEvidence: payload.capabilityEvidence || state.liveInsights.capabilityEvidence || null,
+      propelInsights: payload.propelInsights || state.liveInsights.propelInsights || null,
     };
   } catch (error) {
     if (requestId !== marketRequestSequence) {
@@ -7887,6 +8102,10 @@ async function loadMarketSignals({ force = false, showLoadingState = true } = {}
 
   persistAllState();
   renderPage("market");
+  renderPage("content");
+  renderPage("events");
+  renderPage("product");
+  renderAllCommunityPages();
   renderOverview();
   updateHeaderMeta();
 }
